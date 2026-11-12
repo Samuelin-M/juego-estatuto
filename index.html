@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1d2b2a">
+  <title>Carrera Docente — Estatuto de Profesionalización</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <!-- Aquí Phaser dibuja el mapa -->
+  <div id="juego"></div>
+
+  <!-- Barra superior -->
+  <header id="hud" class="oculto">
+    <div id="hud-objetivo">Objetivo</div>
+    <div class="hud-fila">
+      <span class="hud-etiqueta">Puntaje</span>
+      <div class="barra">
+        <div class="barra-relleno" id="barra-relleno"></div>
+        <div class="barra-umbral" title="60%: mínimo exigido"></div>
+      </div>
+      <span class="hud-valor" id="hud-puntaje">50</span>
+    </div>
+    <div class="hud-fila chips">
+      <span class="chip" id="hud-grado">Recién graduado</span>
+      <span class="chip" id="hud-anio">Año 0</span>
+      <span class="chip" id="hud-arts">📜 0</span>
+    </div>
+  </header>
+
+  <div id="aviso"></div>
+
+  <!-- Interior de un edificio -->
+  <section id="interior" class="oculto">
+    <div class="int-caja">
+      <div class="int-cabecera">
+        <span id="int-icono">🏛️</span>
+        <div>
+          <div id="int-nombre">Edificio</div>
+          <div id="int-arts"></div>
+        </div>
+      </div>
+      <div id="int-cuerpo"></div>
+    </div>
+  </section>
+
+  <!-- Pantalla de inicio -->
+  <section id="inicio" class="pantalla">
+    <div class="pantalla-caja">
+      <div class="icono-grande">🍎</div>
+      <h1 id="titulo">Carrera Docente</h1>
+      <p id="subtitulo" class="suave"></p>
+      <ul class="instrucciones">
+        <li>👆 Toca el mapa para caminar.</li>
+        <li>🏠 Toca un edificio para entrar.</li>
+        <li>⬇️ La flecha amarilla marca a dónde ir.</li>
+        <li>📜 Cada decisión te descubre un artículo del estatuto.</li>
+      </ul>
+      <button id="btn-jugar" class="btn-principal">Jugar</button>
+      <p id="creditos" class="pie"></p>
+    </div>
+  </section>
+
+  <!-- Pantalla final -->
+  <section id="final" class="pantalla oculto">
+    <div class="pantalla-caja">
+      <div class="icono-grande" id="fin-icono">🏆</div>
+      <h2 id="fin-titulo">¡Carrera completada!</h2>
+      <p id="fin-texto"></p>
+      <p class="suave">Artículos que descubriste:</p>
+      <ul id="fin-articulos" class="lista-articulos"></ul>
+      <button id="btn-reiniciar" class="btn-principal">Jugar de nuevo</button>
+    </div>
+  </section>
+
+  <script src="phaser.min.js"></script>
+  <script src="mapa.js"></script>
+  <script src="contenido.js"></script>
+  <script src="sprites.js"></script>
+  <script src="juego.js"></script>
+</body>
+</html>

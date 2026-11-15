@@ -215,3 +215,68 @@ h2 { font-size: 1.4rem; color: var(--acento); text-align: center; }
 
 @keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
 @keyframes subir { from { transform: translateY(40px); } to { transform: none; } }
+
+/* ================= v3: indicadores, personajes y tablas ================= */
+.hud-cabecera { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+#hud-avatar { font-size: 1.3rem; }
+.hud-cabecera #hud-objetivo { margin: 0; line-height: 1.25; }
+
+.indicadores { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+.ind { display: flex; align-items: center; gap: 6px; font-size: .78rem; }
+.ind-icono { width: 1.2em; text-align: center; }
+.ind .barra { height: 8px; }
+.ind-valor { min-width: 2.2ch; text-align: right; font-weight: 700; font-size: .78rem; }
+.barra-relleno.ind-experiencia { background: #e0a458; }
+.barra-relleno.ind-formacion { background: #8fb8ff; }
+.barra-relleno.ind-popularidad { background: #f2c14e; }
+.barra-relleno.ind-desempeno { background: #7bc98f; }
+
+.efectos { display: flex; flex-wrap: wrap; gap: 6px; }
+.efectos .efecto { margin-top: 0; }
+
+.tabla { background: rgba(243,239,228,.06); border-radius: var(--radio); padding: 6px 12px; }
+.fila { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px dashed rgba(243,239,228,.15); font-size: .9rem; }
+.fila:last-child { border-bottom: none; }
+.fila.total { font-weight: 800; color: var(--acento); font-size: 1rem; }
+.fila-valor { font-weight: 700; white-space: nowrap; }
+.fila-nota { font-size: .78rem; color: var(--tiza-suave); margin-top: 2px; }
+
+.oportunidad { border-radius: var(--radio); padding: 12px 14px; font-weight: 700; border: 2px solid; }
+.oportunidad.vacante { background: rgba(123,201,143,.15); border-color: var(--bien); }
+.oportunidad.provisional { background: rgba(242,193,78,.15); border-color: var(--acento); }
+.oportunidad.reemplazo { background: rgba(232,122,106,.12); border-color: var(--mal); }
+.oportunidad.ninguna { background: rgba(232,122,106,.12); border-color: var(--mal); }
+
+.alerta { background: rgba(242,193,78,.15); border: 1.5px solid var(--acento); border-radius: var(--radio); padding: 10px 12px; font-size: .9rem; }
+.paso { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--tiza-suave); }
+.titulo-carta { color: var(--acento); font-size: 1.15rem; }
+.globo.pregunta { font-weight: 700; font-size: 1.05rem; }
+
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:disabled:active { transform: none; }
+.motivo { display: block; font-size: .78rem; color: var(--tiza-suave); margin-top: 4px; }
+.btn-secundario { background: transparent; color: var(--tiza-suave); text-align: center; width: 100%; border: 1.5px dashed rgba(243,239,228,.3); }
+.btn-enlace { display: block; text-decoration: none; text-align: center; font-weight: 700; }
+.btn-grande { font-size: 1.1rem; padding: 16px; }
+.centrado { text-align: center; }
+.pequeno { font-size: .82rem; margin-top: -8px; }
+.pantalla-caja.ancha { max-width: 720px; }
+
+.lista-personajes { display: grid; gap: 12px; }
+@media (min-width: 700px) { .lista-personajes { grid-template-columns: repeat(3, 1fr); } }
+.tarjeta-personaje {
+  display: flex; flex-direction: column; gap: 8px;
+  background: rgba(243,239,228,.07); color: var(--tiza);
+  border: 2px solid rgba(243,239,228,.25); border-radius: var(--radio);
+  padding: 14px; text-align: left;
+}
+.tarjeta-personaje:hover { border-color: var(--acento); background: rgba(243,239,228,.12); }
+.pj-cabecera { display: flex; align-items: center; gap: 10px; }
+.pj-icono { font-size: 2.2rem; }
+.pj-nombre { font-weight: 800; font-size: 1.15rem; }
+.pj-perfil { font-size: .82rem; color: var(--acento); }
+.pj-desc { font-size: .88rem; color: var(--tiza-suave); }
+.pj-inds { display: grid; gap: 4px; }
+.pj-nota { font-size: .78rem; border-left: 3px solid var(--acento); padding-left: 8px; color: var(--tiza-suave); }
+
+.historial { list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: .85rem; background: rgba(243,239,228,.06); border-radius: var(--radio); padding: 10px 12px; max-height: 30vh; overflow-y: auto; }

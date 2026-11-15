@@ -1,32 +1,46 @@
 # Carrera Docente
 
-Juego para recorrer un pueblo y construir una carrera docente según el Estatuto de Profesionalización Docente (Decreto 1278 de 2002, artículos 8–40). Actividad de la clase de Ética, UIS.
+Juego de competencia docente sobre el Estatuto de Profesionalización Docente (Decreto 1278 de 2002, artículos 8–40). Actividad de la clase de Ética, UIS.
 
-Se juega desde el celular: tocas el mapa para caminar y tocas un edificio para entrar.
+Sigue la *Propuesta de dinámica* del grupo: tres personajes, cuatro indicadores (experiencia, formación, popularidad y desempeño), concurso docente, evaluación anual, situaciones inesperadas, progresión profesional y dos modalidades de juego.
+
+**Jugar:** https://samuelin-m.github.io/juego-estatuto/
+
+## Modalidades
+
+### 🗺️ Individual (`index.html`)
+Cada jugador, desde su celular, elige un personaje y recorre el pueblo durante 5 años:
+
+| Edificio | Qué pasa | Artículos |
+|---|---|---|
+| **Secretaría** | Concurso docente: 3 pruebas + antecedentes → vacante, provisional o reemplazo. Después: evaluación de competencias (ascenso/reubicación) y concursos para coordinador y rector | 8–15, 10, 20–23, 35–36 |
+| **Colegio** | Una situación de aula por año | 29, 33, 34, 39 |
+| **Cartas 🃏** | Dos situaciones inesperadas por año que aparecen en el mapa | 14, 36–40 |
+| **Universidad** | Formación: licenciatura, pedagogía, especialización, maestría, doctorado | 12, 21, 38 |
+| **Rectoría** | Evaluación anual (60% mínimo) | 12, 13, 31, 32, 36 |
+
+### 📺 En vivo (`presentador.html` + `jugar.html`)
+El presentador proyecta la pantalla con un código QR, los estudiantes se unen desde el celular a uno de los tres equipos (personajes), y compiten en 4 rondas con tres tipos de desafío: **pregunta rápida**, **duelo de conocimientos** y **caso profesional**.
+
+> ⚠️ Para que los celulares se conecten hace falta configurar Supabase en `config.js`. Mientras tanto funciona en **modo prueba**: el presentador y los jugadores deben ser pestañas del mismo navegador.
 
 ## Archivos
 
 | Archivo | Qué es | ¿Se edita? |
 |---|---|---|
-| `contenido.js` | Lo que pasa dentro de cada edificio: personajes, decisiones y artículos | **Sí, aquí va la historia** |
-| `mapa.js` | El mapa del pueblo y dónde está cada edificio | Solo para cambiar el mapa |
-| `index.html`, `estilos.css` | La página y su diseño | Casi nunca |
-| `juego.js`, `sprites.js` | El motor del juego y los gráficos | No hace falta |
-| `phaser.min.js` | La librería de juegos [Phaser](https://phaser.io) 3.90 (licencia MIT) | No |
-
-## Edificios y artículos
-
-1. **Secretaría de Educación**: el concurso (arts. 8–15)
-2. **Colegio**: periodo de prueba y evaluación (arts. 12–14, 26–31)
-3. **Universidad**: carrera y escalafón (arts. 16–25)
-4. **Rectoría**: evaluación de desempeño, derechos y ética (arts. 32–40)
-
-## Publicar en GitHub Pages
-
-1. Sube **todos los archivos sueltos** a la raíz del repositorio (no la carpeta, no el .zip).
-2. Ve a **Settings → Pages → Deploy from a branch → main / (root) → Save**.
-3. Espera 1–2 minutos y abre `https://TU-USUARIO.github.io/NOMBRE-DEL-REPO/`.
+| `contenido.js` | **Todo el contenido**: personajes, concurso, situaciones, cartas, formación, reglas, preguntas y rondas del modo en vivo | **Sí** |
+| `config.js` | Datos de Supabase para el modo en vivo | Una vez |
+| `mapa.js` | Mapa del pueblo y edificios | Solo para cambiar el mapa |
+| `index.html`, `juego.js`, `sprites.js` | Modo individual | No hace falta |
+| `presentador.*`, `jugar.html`, `jugador.js`, `red.js`, `en-vivo.css` | Modo en vivo | No hace falta |
+| `lib/` | Librerías: Phaser 3.90, supabase-js 2.119, qrcode-generator 2.0 (todas MIT) | No |
 
 ## Probar en el computador
 
-Doble clic en `index.html`. En el computador también se puede caminar con las flechas o con WASD.
+Las páginas necesitan servirse por HTTP (no con doble clic). Desde la carpeta del proyecto:
+
+```
+python -m http.server 8000
+```
+
+y abrir `http://localhost:8000`.

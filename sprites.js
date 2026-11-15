@@ -1,6 +1,6 @@
 /* ==========================================================================
    GRÁFICOS — todo se dibuja por código (pixel art), sin imágenes externas.
-   Para cambiar colores del personaje, editar PALETA_JUGADOR.
+   Los colores de pelo y camisa de cada personaje se definen en contenido.js.
    ========================================================================== */
 
 const PALETA_JUGADOR = {
@@ -141,9 +141,27 @@ const Graficos = (function () {
     f.generateTexture("flecha", 20, 14);
     f.destroy();
 
-    // Personaje
-    Object.entries(FRAMES_JUGADOR).forEach(([nombre, filas]) => {
-      pixelArt(scene, "j-" + nombre, filas, PALETA_JUGADOR, 2);
+    // Carta de "situación inesperada"
+    const c = scene.make.graphics({ x: 0, y: 0, add: false });
+    c.fillStyle(0x000000, 0.25).fillEllipse(11, 27, 18, 5);
+    c.fillStyle(color("#3b3024"), 1).fillRoundedRect(1, 0, 20, 26, 3);
+    c.fillStyle(color("#fbf8f0"), 1).fillRoundedRect(3, 2, 16, 22, 2);
+    c.fillStyle(color("#c8553d"), 1).fillRoundedRect(5, 4, 12, 18, 2);
+    c.fillStyle(color("#f2c14e"), 1);
+    // signo de interrogación en píxeles
+    [[8,7],[9,7],[10,7],[11,7],[12,7],[12,8],[12,9],[11,10],[10,11],[10,12],[10,15],[10,16]].forEach(([x, y]) => c.fillRect(x, y, 2, 1.5));
+    c.generateTexture("carta", 22, 30);
+    c.destroy();
+
+    // Personajes: uno por cada personaje de contenido.js, con sus colores
+    const personajes = (typeof CONTENIDO !== "undefined" && CONTENIDO.personajes) || [{ id: "j", colores: {} }];
+    personajes.forEach((pj) => {
+      const paleta = Object.assign({}, PALETA_JUGADOR);
+      if (pj.colores && pj.colores.pelo) paleta.h = pj.colores.pelo;
+      if (pj.colores && pj.colores.camisa) paleta.c = pj.colores.camisa;
+      Object.entries(FRAMES_JUGADOR).forEach(([nombre, filas]) => {
+        pixelArt(scene, pj.id + "-" + nombre, filas, paleta, 2);
+      });
     });
   }
 

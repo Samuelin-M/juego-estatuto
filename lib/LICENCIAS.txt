@@ -1,0 +1,3 @@
+supabase.min.js: @supabase/supabase-js 2.119.0 (MIT License, https://github.com/supabase/supabase-js)
+qrcode.js: qrcode-generator 2.0.4 (MIT License, Kazuhiko Arase)
+phaser.min.js: Phaser 3.90.0 (MIT License, ver PHASER-LICENSE.md)

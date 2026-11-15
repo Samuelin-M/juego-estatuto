@@ -7,31 +7,26 @@
   <title>Carrera Docente — Estatuto de Profesionalización</title>
   <link rel="stylesheet" href="estilos.css">
 </head>
-<body>
-  <!-- Aquí Phaser dibuja el mapa -->
+<body class="modo-mapa">
   <div id="juego"></div>
 
   <!-- Barra superior -->
   <header id="hud" class="oculto">
-    <div id="hud-objetivo">Objetivo</div>
-    <div class="hud-fila">
-      <span class="hud-etiqueta">Puntaje</span>
-      <div class="barra">
-        <div class="barra-relleno" id="barra-relleno"></div>
-        <div class="barra-umbral" title="60%: mínimo exigido"></div>
-      </div>
-      <span class="hud-valor" id="hud-puntaje">50</span>
+    <div class="hud-cabecera">
+      <span id="hud-avatar">🧑‍🏫</span>
+      <div id="hud-objetivo">Objetivo</div>
     </div>
+    <div id="hud-indicadores" class="indicadores"></div>
     <div class="hud-fila chips">
-      <span class="chip" id="hud-grado">Recién graduado</span>
-      <span class="chip" id="hud-anio">Año 0</span>
+      <span class="chip" id="hud-anio">Año 1</span>
+      <span class="chip" id="hud-situacion">Aspirante</span>
       <span class="chip" id="hud-arts">📜 0</span>
     </div>
   </header>
 
   <div id="aviso"></div>
 
-  <!-- Interior de un edificio -->
+  <!-- Interior de un edificio / carta -->
   <section id="interior" class="oculto">
     <div class="int-caja">
       <div class="int-cabecera">
@@ -45,20 +40,34 @@
     </div>
   </section>
 
-  <!-- Pantalla de inicio -->
-  <section id="inicio" class="pantalla">
+  <!-- Menú principal -->
+  <section id="menu" class="pantalla">
     <div class="pantalla-caja">
       <div class="icono-grande">🍎</div>
       <h1 id="titulo">Carrera Docente</h1>
-      <p id="subtitulo" class="suave"></p>
-      <ul class="instrucciones">
-        <li>👆 Toca el mapa para caminar.</li>
-        <li>🏠 Toca un edificio para entrar.</li>
-        <li>⬇️ La flecha amarilla marca a dónde ir.</li>
-        <li>📜 Cada decisión te descubre un artículo del estatuto.</li>
-      </ul>
-      <button id="btn-jugar" class="btn-principal">Jugar</button>
+      <p id="subtitulo" class="suave centrado"></p>
+      <button id="btn-individual" class="btn-principal btn-grande">🗺️ Modo individual</button>
+      <p class="suave pequeno centrado">Recorre el pueblo con tu personaje y construye tu carrera año por año.</p>
+      <a href="presentador.html" class="btn-opcion btn-enlace">📺 Modo en vivo · Presentador</a>
+      <p class="suave pequeno centrado">Para proyectar en clase: tres equipos compiten con preguntas y desafíos.</p>
+      <a href="jugar.html" class="btn-opcion btn-enlace">📱 Unirme a una partida en vivo</a>
       <p id="creditos" class="pie"></p>
+    </div>
+  </section>
+
+  <!-- Selección de personaje -->
+  <section id="seleccion" class="pantalla oculto">
+    <div class="pantalla-caja ancha">
+      <h2>Elige tu personaje</h2>
+      <p class="suave centrado">Cada uno empieza con indicadores distintos.</p>
+      <div id="lista-personajes" class="lista-personajes"></div>
+      <ul class="instrucciones">
+        <li>👆 Toca el mapa para caminar y toca un edificio para entrar.</li>
+        <li>⬇️ La flecha amarilla marca tu objetivo. ★ = opcional.</li>
+        <li>🃏 Cada año aparecen cartas con situaciones inesperadas.</li>
+        <li>🗂️ Al final de cada año, el rector te evalúa: necesitas 60%.</li>
+      </ul>
+      <button id="btn-volver-menu" class="btn-secundario">← Volver</button>
     </div>
   </section>
 
@@ -66,15 +75,18 @@
   <section id="final" class="pantalla oculto">
     <div class="pantalla-caja">
       <div class="icono-grande" id="fin-icono">🏆</div>
-      <h2 id="fin-titulo">¡Carrera completada!</h2>
-      <p id="fin-texto"></p>
+      <h2 id="fin-titulo">Fin</h2>
+      <p id="fin-texto" class="centrado"></p>
+      <ul id="fin-indicadores" class="lista-articulos"></ul>
+      <p class="suave">Tu trayectoria:</p>
+      <ul id="fin-historial" class="historial"></ul>
       <p class="suave">Artículos que descubriste:</p>
       <ul id="fin-articulos" class="lista-articulos"></ul>
       <button id="btn-reiniciar" class="btn-principal">Jugar de nuevo</button>
     </div>
   </section>
 
-  <script src="phaser.min.js"></script>
+  <script src="lib/phaser.min.js"></script>
   <script src="mapa.js"></script>
   <script src="contenido.js"></script>
   <script src="sprites.js"></script>

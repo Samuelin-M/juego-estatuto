@@ -16,6 +16,6 @@
    ========================================================================== */
 
 const CONFIG_EN_VIVO = {
-  supabaseUrl: "",
-  supabaseClave: ""
+  supabaseUrl: "https://fugtqyoubsborrzhqeos.supabase.co",
+  supabaseClave: "sb_publishable_nJ4FSGWvUvv0bnoI9x1Q-w_9ofiGZg4"
 };

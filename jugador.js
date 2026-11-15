@@ -264,6 +264,14 @@
     return b;
   }
 
+  // Si el celular bloqueó la pantalla o cambió de app, al volver se pide el estado actual
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && red && yo.sala) {
+      red.enviar({ t: "unir", id: yo.id, nombre: yo.nombre, equipo: yo.equipo });
+      red.enviar({ t: "hola", id: yo.id });
+    }
+  });
+
   /* ------------------------------ arranque ------------------------------ */
 
   const params = new URLSearchParams(location.search);

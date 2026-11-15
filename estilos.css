@@ -280,3 +280,52 @@ button:disabled:active { transform: none; }
 .pj-nota { font-size: .78rem; border-left: 3px solid var(--acento); padding-left: 8px; color: var(--tiza-suave); }
 
 .historial { list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: .85rem; background: rgba(243,239,228,.06); border-radius: var(--radio); padding: 10px 12px; max-height: 30vh; overflow-y: auto; }
+
+/* ================= compatibilidad con celulares ================= */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { -webkit-user-select: none; }
+body.vivo { -webkit-user-select: text; }
+button, a, .btn-opcion, .tarjeta-personaje, .j-op, .btn-equipo { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+input { font-size: 16px; } /* evita que Safari haga zoom al escribir */
+#juego { height: 100vh; height: 100dvh; }
+.int-caja { max-height: 88vh; max-height: 88dvh; }
+.pantalla { height: 100vh; height: 100dvh; -webkit-overflow-scrolling: touch; }
+#int-cuerpo { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.historial { overscroll-behavior: contain; }
+#hud { padding-top: max(10px, env(safe-area-inset-top)); }
+#aviso { bottom: max(28px, calc(env(safe-area-inset-bottom) + 16px)); }
+
+/* Celular acostado: barra superior más compacta */
+@media (orientation: landscape) and (max-height: 500px) {
+  #hud { padding: 6px 12px; max-width: 760px; }
+  .hud-cabecera { margin-bottom: 3px; }
+  .indicadores { grid-template-columns: repeat(4, 1fr); gap: 4px 10px; }
+  .hud-fila.chips { margin-top: 4px; }
+  .chip { font-size: .7rem; padding: 1px 8px; }
+  .int-caja { max-height: 96vh; max-height: 96dvh; }
+}
+/* Pantallas muy angostas (≤ 340 px) */
+@media (max-width: 340px) {
+  #hud { padding: 8px 10px; }
+  .indicadores { gap: 3px 8px; }
+  .chip { font-size: .68rem; padding: 1px 7px; }
+  h1 { font-size: 1.7rem; }
+}
+
+/* El botón principal del panel queda siempre visible abajo */
+#int-cuerpo { padding-bottom: 0; }
+#int-cuerpo > :last-child { margin-bottom: max(16px, env(safe-area-inset-bottom)); }
+#int-cuerpo > .btn-principal:last-child {
+  position: -webkit-sticky;
+  position: sticky;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 16px 4px var(--fondo), 0 18px 0 18px var(--fondo);
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #hud { display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; }
+  .hud-cabecera { flex: 1; min-width: 0; margin-bottom: 0; }
+  .hud-cabecera #hud-objetivo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hud-fila.chips { order: 1; margin-top: 0; }
+  #hud-indicadores { order: 2; width: 100%; margin-top: 4px; }
+}

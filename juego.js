@@ -749,9 +749,12 @@
       pueblo = this;
       Graficos.crearTexturas(this);
 
-      for (let y = -5; y < 0; y++) {
-        for (let x = 0; x < MAPA.filas[0].length; x++) this.add.image(x * T, y * T, "arbol").setOrigin(0).setDepth(0);
-      }
+      // Bosque decorativo alrededor del mapa, para pantallas más anchas o altas que el pueblo
+      const Wm = MAPA.filas[0].length * T, Hm = MAPA.filas.length * T, B = 12 * T;
+      this.add.tileSprite(-B, -B, Wm + 2 * B, B, "arbol").setOrigin(0).setDepth(0);
+      this.add.tileSprite(-B, Hm, Wm + 2 * B, B, "arbol").setOrigin(0).setDepth(0);
+      this.add.tileSprite(-B, 0, B, Hm, "arbol").setOrigin(0).setDepth(0);
+      this.add.tileSprite(Wm, 0, B, Hm, "arbol").setOrigin(0).setDepth(0);
       this.caminable = [];
       MAPA.filas.forEach((fila, y) => {
         this.caminable[y] = [];
@@ -807,15 +810,22 @@
     ajustarZoom() {
       const w = this.scale.width, h = this.scale.height;
       const W = MAPA.filas[0].length * T, H = MAPA.filas.length * T;
-      let z = Math.min(w / (11 * T), h / (13 * T));
-      z = Phaser.Math.Clamp(z, 1, 2.5);
-      z = Math.max(z, w / W, h / H);
-      this.cameras.main.setZoom(z);
       const hud = document.getElementById("hud");
       const altoHud = hud && hud.offsetHeight ? hud.offsetHeight : 130;
-      const extra = Math.min(5 * T, Math.ceil(altoHud / z));
-      this.cameras.main.setBounds(0, -extra, W, H + extra);
-      this.cameras.main.setFollowOffset(0, altoHud / 2 / z);
+      // Que se vean unas 11 columnas y al menos 8 filas por debajo de la barra superior
+      let z = Math.min(w / (11 * T), (h - altoHud) / (8 * T));
+      z = Phaser.Math.Clamp(z, 0.7, 2.5);
+      const cam = this.cameras.main;
+      cam.setZoom(z);
+      const vw = w / z, vh = h / z;
+      const extra = Math.ceil(altoHud / z);
+      // Límites de la cámara: el pueblo más un margen de bosque si la pantalla es más grande
+      const bx = vw > W ? -(vw - W) / 2 : 0;
+      const bw = Math.max(W, vw);
+      let by = -extra, bh = H + extra;
+      if (vh > bh) { by -= (vh - bh) / 2; bh = vh; }
+      cam.setBounds(bx, by, bw, bh);
+      cam.setFollowOffset(0, altoHud / 2 / z);
     }
 
     crearAnimaciones() {

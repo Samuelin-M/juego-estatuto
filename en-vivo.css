@@ -133,3 +133,4 @@ code { background: rgba(0,0,0,.3); padding: 1px 5px; border-radius: 4px; }
 .resultado-j.mal { border-color: var(--mal); background: rgba(232,122,106,.12); }
 .resultado-j.neutro { border-color: rgba(243,239,228,.3); }
 .resultado-j .tarjeta-articulo { text-align: left; width: 100%; }
+.panel-equipo.vacio { opacity: .35; }

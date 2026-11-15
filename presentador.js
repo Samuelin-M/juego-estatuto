@@ -44,6 +44,11 @@
   function boton(texto, clase, fn) { const b = nodo("button", clase, texto); b.onclick = fn; return b; }
   const miembros = (eq) => Object.values(S.jugadores).filter((j) => j.equipo === eq);
   const rondaActual = () => EV.rondas[S.ronda];
+  // Equipos que compiten: los que tienen jugadores (si nadie se ha unido, todos)
+  const activos = () => {
+    const con = Object.keys(S.equipos).filter((eq) => miembros(eq).length > 0);
+    return con.length ? con : Object.keys(S.equipos);
+  };
 
   function aplicar(eq, efectos) {
     const cambios = [];
@@ -266,7 +271,7 @@
     const r = rondaActual();
     const filas = {};
     if (r.alFinal === "oportunidades") {
-      const orden = Object.keys(S.equipos).sort((a, b) => (S.puntosRonda[b] || 0) - (S.puntosRonda[a] || 0) || S.equipos[b].ind.desempeno - S.equipos[a].ind.desempeno);
+      const orden = activos().sort((a, b) => (S.puntosRonda[b] || 0) - (S.puntosRonda[a] || 0) || S.equipos[b].ind.desempeno - S.equipos[a].ind.desempeno);
       const ops = C.concurso.oportunidades.filter((o) => o.tipo !== "ninguna");
       orden.forEach((eq, i) => {
         const op = ops[Math.min(i, ops.length - 1)];
@@ -277,7 +282,7 @@
       S.resumenRonda = { titulo: "Oportunidades laborales", filas, nota: "Las plazas se asignan en estricto orden de puntaje (art. 11)." };
     }
     if (r.alFinal === "evaluacion") {
-      Object.keys(S.equipos).forEach((eq) => {
+      activos().forEach((eq) => {
         const v = evaluacionDe(eq);
         S.equipos[eq].evaluacion = v;
         filas[eq] = {
@@ -300,7 +305,7 @@
   }
 
   function ranking() {
-    return Object.keys(S.equipos).map((eq) => ({ equipo: eq, puntaje: puntajeFinal(eq) })).sort((a, b) => b.puntaje - a.puntaje);
+    return activos().map((eq) => ({ equipo: eq, puntaje: puntajeFinal(eq) })).sort((a, b) => b.puntaje - a.puntaje);
   }
   function final() { S.fase = "final"; render(); difundir(); }
 
@@ -448,7 +453,7 @@
     const cont = $("equipos");
     cont.innerHTML = "";
     Object.entries(S.equipos).forEach(([id, e]) => {
-      const c = nodo("div", "panel-equipo");
+      const c = nodo("div", "panel-equipo" + (S.fase !== "lobby" && !miembros(id).length && activos().length < 3 ? " vacio" : ""));
       const cab = nodo("div", "panel-cabecera");
       cab.append(nodo("span", "panel-icono", e.pj.icono));
       const t = nodo("div");

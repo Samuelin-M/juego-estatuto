@@ -388,6 +388,8 @@ const Pixel = (function () {
       "....oyo...", "...orro...", "..orrrro..", "oorrrrrroo", "oRRRRRRRRo", "owwowwowwo", "owwwddwwwo", "owowddwowo", "owwwddwwwo", "oooooooooo"] },
     universidad: { p: { o: CONTORNO, v: "#7b4fa0", V: "#5a3778", w: "#ece7f2", W: "#cfc6dc", d: "#6b4226" }, f: [
       "....oo....", "...ovvo...", "..ovvvvo..", "oovvvvvvoo", "oVVVVVVVVo", "owWwWwWwWo", "owWwddwWwo", "owWwddwWwo", "oWWWddWWWo", "oooooooooo"] },
+    menu: { p: { o: CONTORNO, w: "#f6f1e3" }, f: [
+      "oooooooooo", "owwwwwwwwo", "oooooooooo", "..........", "oooooooooo", "owwwwwwwwo", "oooooooooo", "..........", "oooooooooo", "owwwwwwwwo", "oooooooooo"] },
     medalla1: { p: { o: CONTORNO, r: "#c8553d", b: "#3b6fb6", y: "#f2c14e", Y: "#c48a1f", w: "#fff4c2" }, f: [
       ".orro.obbo", "..orrobbo.", "...orbbo..", "...oyyo...", "..oyyyyo..", ".oyywyyYo.", ".oywyyyYo.", ".oyyyyYYo.", "..oYYYYo..", "...oooo..."] },
     medalla2: { p: { o: CONTORNO, r: "#c8553d", b: "#3b6fb6", y: "#d6dbe0", Y: "#9aa3ad", w: "#ffffff" }, f: [
@@ -474,6 +476,17 @@ const Pixel = (function () {
     return cx - x - 1;
   }
 
+  // Globito de diálogo con un ícono adentro (qué está haciendo otro jugador)
+  function burbuja(icono) {
+    const l = lienzo(18, 18);
+    l.r(2, 1, 14, 13, "#fbf8f0"); l.r(1, 2, 16, 11, "#fbf8f0");
+    l.h(3, 13, 12, "#d6cfbd");
+    l.r(7, 14, 4, 1, "#fbf8f0"); l.r(8, 15, 2, 1, "#fbf8f0");
+    const ic = iconoCanvas(icono, 1);
+    if (ic) l.x.drawImage(ic, 4, 2);
+    return contorno(l);
+  }
+
   // Placa con un nombre escrito en letras pixeladas (para el mapa)
   function placa(nombre, propia) {
     const txt = String(nombre || "").toUpperCase().slice(0, 16);
@@ -497,5 +510,5 @@ const Pixel = (function () {
     return Promise.race([document.fonts.load('19px "Jersey 10"').catch(() => {}), espera]);
   }
 
-  return { lienzo, escalar, contorno, desdeFilas, azar, mezclar, oscuro, claro, personaje, retrato, cara, escenaMenu, esMujer, icono, iconoCanvas, fuenteLista, texto, anchoTexto, placa, CONTORNO, ICONOS };
+  return { lienzo, escalar, contorno, desdeFilas, azar, mezclar, oscuro, claro, personaje, retrato, cara, escenaMenu, esMujer, icono, iconoCanvas, fuenteLista, texto, anchoTexto, placa, burbuja, CONTORNO, ICONOS };
 })();

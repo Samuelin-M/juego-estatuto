@@ -944,7 +944,10 @@
       this.scale.on("resize", () => this.ajustarZoom());
 
       this.input.on("pointerup", (p) => this.alTocar(p));
-      this.teclas = this.input.keyboard.addKeys("UP,DOWN,LEFT,RIGHT,W,A,S,D,SPACE,ENTER");
+      // Sin "capturar" las teclas, para no bloquear la escritura en campos de texto
+      this.teclas = this.input.keyboard.addKeys("UP,DOWN,LEFT,RIGHT,W,A,S,D,SPACE,ENTER", false);
+      this.input.keyboard.clearCaptures();
+      this.input.keyboard.disableGlobalCapture();
       this.actualizarMarcadores();
     }
 
@@ -1112,7 +1115,7 @@
       this.jugador.setDepth(this.jugador.y);
       this.sombra.setPosition(this.jugador.x, this.jugador.y - 1).setDepth(this.jugador.y - 2);
       if (this.flechaBase) this.flecha.setPosition(this.flechaBase.x, this.flechaBase.y + this.rebote.v);
-      if (!jugando || interiorAbierto || this.moviendo) return;
+      if (!jugando || interiorAbierto || this.moviendo || !$("pausa").classList.contains("oculto")) return;
       const k = this.teclas;
       let dx = 0, dy = 0;
       if (k.LEFT.isDown || k.A.isDown) dx = -1;
@@ -1137,7 +1140,18 @@
 
   /* ============================== arranque ============================== */
 
-  menu();
+  // Menú durante la partida: seguir, empezar de nuevo o volver al menú principal
+  document.querySelectorAll("img[data-ico]").forEach((img) => { const cv = Pixel.iconoCanvas(img.dataset.ico, 2); if (cv) img.src = cv.toDataURL(); });
+  $("btn-menu").onclick = () => { if (E && !interiorAbierto) $("pausa").classList.remove("oculto"); };
+  $("btn-pausa-seguir").onclick = () => $("pausa").classList.add("oculto");
+  $("btn-pausa-nueva").onclick = () => { location.hash = "nueva"; location.reload(); };
+  $("btn-pausa-menu").onclick = () => { location.replace(location.pathname + location.search); };
+
+  if (location.hash === "#nueva") {
+    history.replaceState(null, "", location.pathname + location.search);
+    menu();
+    seleccion();
+  } else menu();
   window.juego = new Phaser.Game({
     type: Phaser.AUTO,
     parent: "juego",

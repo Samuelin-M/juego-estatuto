@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#17241f">
   <title>Carrera Docente — Estatuto de Profesionalización</title>
   <link rel="preload" href="lib/fuentes/jersey-10-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="estilos.css?v=20261116b">
+  <link rel="stylesheet" href="estilos.css?v=20261116c">
 </head>
 <body class="modo-mapa">
   <div id="juego"></div>
@@ -16,6 +16,7 @@
     <div class="hud-cabecera">
       <span id="hud-avatar"></span>
       <div id="hud-objetivo">Objetivo</div>
+      <button id="btn-menu" class="btn-menu" aria-label="Menú" title="Menú"><img class="ico-px" data-ico="menu" alt=""></button>
     </div>
     <div id="hud-indicadores" class="indicadores"></div>
     <div class="hud-fila chips">
@@ -104,6 +105,17 @@
     </div>
   </section>
 
+  <!-- Menú durante la partida -->
+  <section id="pausa" class="pantalla oculto">
+    <div class="pantalla-caja">
+      <h2>Menú</h2>
+      <button id="btn-pausa-seguir" class="btn-principal btn-grande">Seguir jugando</button>
+      <button id="btn-pausa-nueva" class="btn-secundario">Empezar una partida nueva</button>
+      <button id="btn-pausa-menu" class="btn-secundario">Volver al menú principal</button>
+      <p class="suave pequeno centrado">Si empiezas de nuevo o vuelves al menú, se pierde el progreso de esta partida.</p>
+    </div>
+  </section>
+
   <!-- Pantalla final -->
   <section id="final" class="pantalla oculto">
     <div class="pantalla-caja">
@@ -119,12 +131,12 @@
     </div>
   </section>
 
-  <script src="lib/phaser.min.js?v=20261116b"></script>
-  <script src="mapa.js?v=20261116b"></script>
-  <script src="contenido.js?v=20261116b"></script>
-  <script src="pixel.js?v=20261116b"></script>
-  <script src="comun.js?v=20261116b"></script>
-  <script src="sprites.js?v=20261116b"></script>
-  <script src="juego.js?v=20261116b"></script>
+  <script src="lib/phaser.min.js?v=20261116c"></script>
+  <script src="mapa.js?v=20261116c"></script>
+  <script src="contenido.js?v=20261116c"></script>
+  <script src="pixel.js?v=20261116c"></script>
+  <script src="comun.js?v=20261116c"></script>
+  <script src="sprites.js?v=20261116c"></script>
+  <script src="juego.js?v=20261116c"></script>
 </body>
 </html>

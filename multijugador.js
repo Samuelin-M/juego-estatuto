@@ -34,6 +34,7 @@
     aciertos: 0, termino: false, tiempo: 0, fase: "inicio", ind: null, cartasTomadas: [], hechas: []
   };
   const otros = {};        // id → último estado recibido de cada jugador
+  const salidos = new Set(); // jugadores que se salieron de la partida
   let red = null;
   let partida = null;      // { semilla, ids, nombres, t0, plan }
   let pueblo = null;
@@ -42,6 +43,8 @@
   let podioMostrado = false;
   let respuestasConcurso = {};
   let relojPregunta = null;
+  let panelActual = null;
+  let entradaTarde = null;  // { ini, intentos, t } mientras se pide entrar a una partida ya empezada
 
   /* ============================ utilidades ============================ */
 
@@ -65,6 +68,7 @@
     return b;
   }
   const pjDe = (id) => C.personajes.find((p) => p.id === id);
+  const escribiendo = () => { const a = document.activeElement; return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"); };
   const NOMBRES = { secretaria: "la Secretaría", colegio: "el Colegio", universidad: "la Universidad", rectoria: "la Rectoría" };
   const nombreEdificio = (id) => NOMBRES[id] || MAPA.edificios.find((e) => e.id === id).etiqueta;
   const mmss = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
@@ -82,14 +86,25 @@
   }
 
   function mostrarPantalla(visible) { $("mj-pantalla").classList.toggle("oculto", !visible); }
-  function caja() { const c = $("mj-caja"); c.innerHTML = ""; $("mj-pantalla").scrollTop = 0; return c; }
+  // conservar: no volver arriba (para pantallas que se actualizan solas)
+  let firmaPantalla = null;
+  function caja(conservar) {
+    const c = $("mj-caja");
+    const arriba = $("mj-pantalla").scrollTop;
+    c.innerHTML = "";
+    $("mj-pantalla").scrollTop = conservar ? arriba : 0;
+    firmaPantalla = null;
+    return c;
+  }
 
   /* ============================ preguntas ============================ */
 
   // Plan de preguntas de la partida: sale de la semilla, así todos reciben las
   // mismas preguntas en el mismo orden (sin repetir dentro de cada banco).
+  // Cada jugador tiene sus propias preguntas (sale de la semilla y de su id)
+  function hashTexto(t) { let h = 2166136261; for (const ch of String(t)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
   function planPreguntas(semilla) {
-    const rnd = azarConSemilla(semilla ^ 0x5bd1e995);
+    const rnd = azarConSemilla((semilla ^ 0x5bd1e995 ^ hashTexto(yo.id)) >>> 0);
     const usadas = {};
     return M.procesos.map((p) => p.preguntas.map((banco) => {
       const it = Comun.sacar(banco, (usadas[banco] = usadas[banco] || []), p.concurso ? 1 : null, rnd);
@@ -117,6 +132,7 @@
       t: "j", id: yo.id, nombre: yo.nombre, pj: yo.pj, anf: yo.anf, unido: yo.unido,
       x: yo.x, y: yo.y, dir: yo.dir, proc: yo.proc, puntos: yo.puntos, bonoOp: yo.bonoOp,
       oportunidad: yo.oportunidad, aciertos: yo.aciertos, termino: yo.termino, tiempo: yo.tiempo, fase: yo.fase,
+      panel: panelActual,          // edificio o carta donde está respondiendo (para que los demás lo vean)
       // datos de la partida, por si a alguien no le llegó el aviso de inicio
       ini: partida ? { semilla: partida.semilla, ids: partida.ids, nombres: partida.nombres } : null
     };
@@ -138,29 +154,75 @@
     }, PREFIJO);
   }
 
+  const enSalaOTarde = () => yo.fase === "sala" || yo.fase === "tarde";
+  const mismaPartida = (ini) => partida && ini && ini.semilla === partida.semilla;
+
   function recibir(m) {
     if (!m || !m.t || m.id === yo.id) return;
     if (m.t === "j") {
       const nuevo = !otros[m.id];
       otros[m.id] = Object.assign(otros[m.id] || {}, m, { visto: Date.now() });
       if (nuevo) enviarEstado();
-      if (yo.fase === "sala" && m.ini && m.ini.ids.includes(yo.id)) { iniciarPartida(m.ini); return; }
+      if (enSalaOTarde() && m.ini && m.ini.ids.includes(yo.id) && (m.fase === "juego" || m.fase === "fin")) { iniciarPartida(m.ini); return; }
+      if (mismaPartida(m.ini)) unirIds(m.ini);
       resolverConflictoPersonaje();
       if (yo.fase === "sala") pantallaSala();
+      if (yo.fase === "tarde") pantallaUnirseTarde();
       if (jugando || yo.fase === "fin") { if (pueblo) pueblo.actualizarOtro(otros[m.id]); actualizarHud(); revisarFin(); }
       if (yo.fase === "fin" && !podioMostrado) pantallaEspera();
     } else if (m.t === "hola") {
       enviarEstado();
     } else if (m.t === "inicio") {
-      if (yo.fase === "sala") iniciarPartida(m);
+      if (enSalaOTarde()) iniciarPartida(m);
+      else if (mismaPartida(m)) unirIds(m);
+    } else if (m.t === "pedir") {
+      atenderPedido(m);
+    } else if (m.t === "rechazo") {
+      if (m.para === yo.id && yo.fase === "tarde") { entradaTarde = null; pantallaUnirseTarde(m.motivo); }
+    } else if (m.t === "cancelar") {
+      if (partida && partida.ids.includes(m.id)) volverASala(`${m.nombre || "El anfitrión"} canceló la partida. ¡Pueden empezar otra!`);
     } else if (m.t === "fin") {
-      if (partida) mostrarPodio();
+      if (partida && partida.ids.includes(m.id)) mostrarPodio();
     } else if (m.t === "salir") {
+      if (partida && partida.ids.includes(m.id)) { salidos.add(m.id); aviso(`${(otros[m.id] && otros[m.id].nombre) || "Un jugador"} salió de la partida`, "jugadores"); }
       delete otros[m.id];
       if (pueblo) pueblo.quitarOtro(m.id);
       if (yo.fase === "sala") pantallaSala();
       revisarFin();
     }
+  }
+
+  // Alguien entró tarde: se agrega a la lista de jugadores de esta partida
+  function unirIds(ini) {
+    let cambio = false;
+    ini.ids.forEach((id) => { if (!partida.ids.includes(id)) { partida.ids.push(id); cambio = true; } });
+    Object.assign(partida.nombres, ini.nombres || {});
+    if (cambio) { actualizarHud(); guardarProgreso(); }
+  }
+
+  // Quien coordina la partida: el primero de la lista que siga conectado
+  function coordinador() {
+    if (!partida) return null;
+    return partida.ids.find((id) => id === yo.id || (otros[id] && conectado(otros[id])));
+  }
+  function reenviarInicio() {
+    if (!partida || !red) return;
+    red.enviar({ t: "inicio", id: yo.id, semilla: partida.semilla, ids: partida.ids, nombres: partida.nombres });
+    enviarEstado();
+  }
+  function atenderPedido(m) {
+    if (!partida || podioMostrado || coordinador() !== yo.id) return;
+    if (partida.ids.includes(m.id)) { reenviarInicio(); return; }
+    const ocupados = jugadoresPartida().map((j) => j.pj);
+    let motivo = null;
+    if (partida.ids.length >= M.maxJugadores) motivo = `La partida ya tiene ${M.maxJugadores} jugadores.`;
+    else if (!m.pj || ocupados.includes(m.pj)) motivo = "Ese personaje ya está en la partida: elige otro.";
+    if (motivo) { red.enviar({ t: "rechazo", id: yo.id, para: m.id, motivo }); return; }
+    partida.ids.push(m.id);
+    partida.nombres[m.id] = m.nombre;
+    reenviarInicio();
+    aviso(`${m.nombre} entró a la partida`, "jugadores");
+    actualizarHud();
   }
 
   const conectado = (o) => Date.now() - (o.visto || 0) < DESCONECTADO_MS;
@@ -276,12 +338,23 @@
     const lista = enSala();
     const pos = lista.findIndex((j) => j.id === yo.id);
     if (pos >= M.maxJugadores) { salirSala(); return pantallaInicio(`La sala ${yo.sala} ya tiene ${M.maxJugadores} jugadores.`); }
-    const yaEmpezo = Object.values(otros).some((o) => conectado(o) && (o.fase === "juego" || o.fase === "fin") && !(o.ini && o.ini.ids.includes(yo.id)));
-    if (yaEmpezo) { salirSala(); return pantallaInicio(`La partida de la sala ${yo.sala} ya empezó.`); }
+    const enCurso = Object.values(otros).find((o) => conectado(o) && o.fase === "juego" && o.ini && !o.ini.ids.includes(yo.id));
+    if (enCurso) {
+      // La partida empezó sin este jugador: si ya tenía un personaje libre, entra solo
+      yo.fase = "tarde";
+      entradaTarde = { ini: enCurso.ini };
+      enviarEstado();
+      const ocupados = enCurso.ini.ids.map((id) => otros[id] && otros[id].pj).filter(Boolean);
+      if (yo.pj && !ocupados.includes(yo.pj)) return pedirEntrada();
+      return pantallaUnirseTarde();
+    }
 
     const host = anfitrion();
     const soyHost = host && host.id === yo.id;
-    const c = caja();
+    const firma = "sala|" + JSON.stringify(lista.map((j) => [j.id, j.nombre, j.pj])) + "|" + (host && host.id) + "|" + yo.pj;
+    if (firma === firmaPantalla && !$("mj-pantalla").classList.contains("oculto")) return;
+    const c = caja(true);
+    firmaPantalla = firma;
     c.append(nodo("h2", "", "Sala de espera"));
     const cab = nodo("div", "sala-cabecera");
     const info = nodo("div", "sala-info");
@@ -372,9 +445,18 @@
   /* ============================ partida ============================ */
 
   function iniciarPartida(m, restaurar) {
-    if (!m.ids.includes(yo.id)) { salirSala(); return pantallaInicio("La partida empezó sin ti. Pide que creen una sala nueva."); }
+    if (!m.ids.includes(yo.id)) {
+      // La partida empezó sin este jugador (por ejemplo, se le apagó la pantalla): pide entrar
+      yo.fase = "tarde";
+      entradaTarde = { ini: m };
+      enviarEstado();
+      if (yo.pj) pedirEntrada(); else pantallaUnirseTarde();
+      return;
+    }
     clearTimeout(vigiaSala);
-    partida = { semilla: m.semilla, ids: m.ids, nombres: m.nombres, t0: Date.now() - (restaurar ? restaurar.transcurrido : 0), plan: planPreguntas(m.semilla) };
+    if (entradaTarde) { clearTimeout(entradaTarde.timer); entradaTarde = null; }
+    salidos.clear();
+    partida = { semilla: m.semilla, ids: m.ids.slice(), nombres: Object.assign({}, m.nombres), t0: Date.now() - (restaurar ? restaurar.transcurrido : 0), plan: planPreguntas(m.semilla) };
     if (!restaurar) {
       const ini = INICIOS[m.ids.indexOf(yo.id)] || INICIOS[0];
       Object.assign(yo, { fase: "juego", proc: 0, puntos: 0, bonoOp: 0, oportunidad: null, aciertos: 0, termino: false, tiempo: 0, x: ini.x, y: ini.y, dir: "arriba", cartasTomadas: [], hechas: [] });
@@ -389,6 +471,137 @@
     enviarEstado();
     if (jugando) aviso("¡Arranca la carrera! Toca el mapa para caminar", "llegada");
     else pantallaEspera();
+  }
+
+  /* ----------------- entrar a una partida que ya empezó ----------------- */
+
+  function partidaEnCurso() {
+    const o = Object.values(otros).find((x) => conectado(x) && (x.fase === "juego" || x.fase === "fin") && x.ini);
+    return o ? o.ini : (entradaTarde && entradaTarde.ini) || null;
+  }
+
+  function pantallaUnirseTarde(motivo) {
+    if (yo.fase !== "tarde") return;
+    const ini = partidaEnCurso();
+    if (!ini) { yo.fase = "sala"; entradaTarde = null; enviarEstado(); return pantallaSala(); }
+    const enJuego = ini.ids.map((id) => otros[id]).filter(Boolean);
+    const ocupados = enJuego.map((o) => o.pj);
+    const llena = ini.ids.length >= M.maxJugadores;
+    const pidiendo = !!(entradaTarde && entradaTarde.pidiendo);
+    const firma = "tarde|" + JSON.stringify([ini.ids, ocupados, yo.pj, pidiendo, motivo || ""]);
+    if (firma === firmaPantalla && !$("mj-pantalla").classList.contains("oculto")) return;
+    mostrarPantalla(true);
+    const c = caja(true);
+    firmaPantalla = firma;
+    c.append(nodo("h2", "", "La partida ya empezó"));
+    c.append(nodo("p", "centrado", `En la sala ${yo.sala} ya están jugando: ${enJuego.map((o) => o.nombre).join(", ") || "otros jugadores"}.`));
+    if (motivo) c.append(nodo("div", "alerta", motivo));
+    if (llena) {
+      c.append(nodo("div", "alerta", `La partida está llena (${M.maxJugadores} jugadores). Espera a que termine o crea otra sala.`));
+    } else if (pidiendo) {
+      c.append(con("p", "espera-host", ico("reloj"), " Entrando a la partida…"));
+    } else {
+      c.append(nodo("div", "etiqueta", "Elige un personaje libre para entrar"));
+      const grid = nodo("div", "lista-personajes compacta");
+      C.personajes.forEach((pj) => {
+        const ocupado = ocupados.includes(pj.id);
+        const t = nodo("button", "tarjeta-personaje" + (yo.pj === pj.id && !ocupado ? " elegido" : ""));
+        const ret = nodo("div", "pj-retrato");
+        ret.append(Pixel.retrato(pj, 2));
+        t.append(con("div", "pj-cabecera", ret, con("div", "", nodo("div", "pj-nombre", pj.nombre), nodo("div", "pj-perfil", pj.perfil))));
+        if (ocupado) { t.disabled = true; t.append(nodo("p", "pj-nota", "Ya está en la partida")); }
+        t.onclick = () => { yo.pj = pj.id; firmaPantalla = null; pantallaUnirseTarde(); };
+        grid.append(t);
+      });
+      c.append(grid);
+      const b = boton(yo.pj && !ocupados.includes(yo.pj) ? "Entrar a la partida" : "Elige un personaje", "btn-principal btn-grande", pedirEntrada);
+      b.disabled = !yo.pj || ocupados.includes(yo.pj);
+      c.append(b);
+    }
+    c.append(boton("Salir de la sala", "btn-secundario", () => { if (entradaTarde) clearTimeout(entradaTarde.timer); entradaTarde = null; salirSala(); pantallaInicio(); }));
+  }
+
+  function pedirEntrada() {
+    if (yo.fase !== "tarde" || !yo.pj) return;
+    if (entradaTarde) clearTimeout(entradaTarde.timer);
+    entradaTarde = Object.assign(entradaTarde || {}, { pidiendo: true, intentos: 0 });
+    const enviar = () => {
+      if (yo.fase !== "tarde" || !entradaTarde || !entradaTarde.pidiendo) return;
+      if (red) red.enviar({ t: "pedir", id: yo.id, nombre: yo.nombre, pj: yo.pj });
+      entradaTarde.intentos++;
+      if (entradaTarde.intentos < 8) entradaTarde.timer = setTimeout(enviar, 2500);
+      else { entradaTarde.pidiendo = false; firmaPantalla = null; pantallaUnirseTarde("No hubo respuesta de la partida. Intenta otra vez."); }
+    };
+    enviar();
+    firmaPantalla = null;
+    pantallaUnirseTarde();
+  }
+
+  /* ----------------- cancelar, salir y volver a la sala ----------------- */
+
+  function limpiarPartida() {
+    clearInterval(relojPregunta);
+    $("interior").classList.add("oculto");
+    interiorAbierto = false;
+    panelActual = null;
+    partida = null;
+    podioMostrado = false;
+    jugando = false;
+    procesoCerrado = -1;
+    respuestasConcurso = {};
+    hudDe = null;
+    salidos.clear();
+    try { sessionStorage.removeItem("cd-mj"); } catch (e) { /* nada */ }
+    Object.assign(yo, { proc: 0, puntos: 0, bonoOp: 0, oportunidad: null, aciertos: 0, termino: false, tiempo: 0, cartasTomadas: [], hechas: [] });
+    $("hud").classList.add("oculto");
+    if (pueblo) pueblo.reiniciarTodo();
+  }
+
+  // Todos vuelven a la sala de espera del mismo código para jugar otra partida
+  function volverASala(mensaje) {
+    limpiarPartida();
+    yo.fase = "sala";
+    enviarEstado();
+    firmaPantalla = null;
+    pantallaSala();
+    if (mensaje) aviso(mensaje, "jugadores");
+  }
+  function cancelarParaTodos(mensaje) {
+    if (red) red.enviar({ t: "cancelar", id: yo.id, nombre: yo.nombre });
+    volverASala(mensaje || "Cancelaste la partida. Pueden empezar otra.");
+  }
+  function salirDePartida() {
+    limpiarPartida();
+    salirSala();
+    pantallaInicio();
+  }
+  const soyCoordinador = () => !!partida && coordinador() === yo.id;
+
+  function menuPartida(confirmar) {
+    if (!partida) return;
+    mostrarPantalla(true);
+    const c = caja();
+    c.append(nodo("h2", "", "Menú"));
+    if (!confirmar) {
+      c.append(boton("Seguir jugando", "btn-principal btn-grande", cerrarMenu));
+      c.append(boton("Salir de la partida", "btn-secundario", () => menuPartida("salir")));
+      if (soyCoordinador()) c.append(boton("Cancelar la partida para todos", "btn-secundario", () => menuPartida("cancelar")));
+      c.append(nodo("p", "suave pequeno centrado", soyCoordinador()
+        ? "Si cancelas, todos vuelven a la sala de espera y pueden empezar otra partida."
+        : "Si sales, puedes crear otra sala o unirte a otra."));
+    } else if (confirmar === "salir") {
+      c.append(nodo("p", "centrado", "¿Seguro? Saldrás de la partida y perderás tu puntaje."));
+      c.append(boton("Sí, salir", "btn-principal", salirDePartida));
+      c.append(boton("No, seguir jugando", "btn-secundario", cerrarMenu));
+    } else {
+      c.append(nodo("p", "centrado", "¿Seguro? Se termina la partida para todos y vuelven a la sala de espera."));
+      c.append(boton("Sí, cancelar la partida", "btn-principal", () => cancelarParaTodos()));
+      c.append(boton("No, seguir jugando", "btn-secundario", cerrarMenu));
+    }
+  }
+  function cerrarMenu() {
+    if (yo.fase === "fin" && !podioMostrado) return pantallaEspera();
+    mostrarPantalla(false);
   }
 
   function procesoActual() { return M.procesos[yo.proc]; }
@@ -432,6 +645,10 @@
   }
 
   setInterval(() => {
+    if (yo.fase === "sala" || yo.fase === "tarde") {
+      enviarEstado();                                   // latido: los demás saben que sigues aquí
+      if (yo.fase === "sala") pantallaSala(); else pantallaUnirseTarde();
+    }
     if (!partida) return;
     actualizarHud();
     if (jugando || yo.fase === "fin") enviarEstado();     // latido
@@ -446,6 +663,7 @@
 
   function abrirPanel(icono, nombre, sub) {
     interiorAbierto = true;
+    panelActual = icono;
     $("aviso").classList.remove("visible");
     $("int-icono").innerHTML = "";
     $("int-icono").append(ico(icono, 3));
@@ -470,6 +688,7 @@
     clearInterval(relojPregunta);
     $("interior").classList.add("oculto");
     interiorAbierto = false;
+    if (panelActual) { panelActual = null; if (partida) enviarEstado(); }
     actualizarHud();
     if (pueblo) pueblo.actualizarMarcadores();
   }
@@ -688,14 +907,14 @@
     if (!partida || podioMostrado || !yo.termino) return;
     const todos = jugadoresPartida();
     const pendientes = todos.filter((j) => !j.termino && conectado(j));
-    const faltantes = partida.ids.filter((id) => id !== yo.id && !otros[id]);
+    const faltantes = partida.ids.filter((id) => id !== yo.id && !otros[id] && !salidos.has(id));
     if (!pendientes.length && !faltantes.length) mostrarPodio();
   }
 
   function pantallaEspera() {
     if (podioMostrado) return;
     mostrarPantalla(true);
-    const c = caja();
+    const c = caja(true);
     c.append(con("div", "icono-grande", Pixel.retrato(pjDe(yo.pj), 4), ico("llegada", 5)));
     c.append(nodo("h2", "", "¡Terminaste!"));
     c.append(nodo("p", "centrado", `Hiciste ${yo.puntos} puntos en ${mmss(yo.tiempo)} con ${yo.aciertos} aciertos.`));
@@ -713,6 +932,7 @@
     if (host === yo.id || !otros[host] || !conectado(otros[host])) {
       c.append(boton("Terminar la partida y ver el podio", "btn-secundario", () => { red.enviar({ t: "fin", id: yo.id }); mostrarPodio(); }));
     }
+    c.append(boton("Salir de la partida", "btn-secundario", () => menuPartida("salir")));
   }
 
   function calcularPodio() {
@@ -756,7 +976,9 @@
     const total = M.procesos.reduce((s, p) => s + p.preguntas.length, 0);
     c.append(nodo("p", "suave centrado pequeno-texto",
       `Cada acierto vale ${M.puntosAcierto} + hasta ${M.bonoRapidez} por rapidez (${total} preguntas). Bono por oportunidad laboral del concurso y por orden de llegada (${M.bonoLlegada.join(", ")}).`));
-    c.append(boton("Jugar otra vez", "btn-principal", () => { location.href = "multijugador.html"; }));
+    if (soyCoordinador()) c.append(boton("Otra partida en esta sala", "btn-principal btn-grande", () => cancelarParaTodos("Nueva partida: elijan personaje y empiecen.")));
+    else c.append(boton("Volver a la sala de espera", "btn-principal btn-grande", () => volverASala()));
+    c.append(boton("Crear una sala nueva", "btn-secundario", () => { limpiarPartida(); salirSala(); pantallaInicio(); }));
     const volver = nodo("a", "btn-secundario btn-enlace", "Volver al menú");
     volver.href = "index.html";
     c.append(volver);
@@ -791,7 +1013,10 @@
       this.ajustarZoom();
       this.scale.on("resize", () => this.ajustarZoom());
       this.input.on("pointerup", (p) => this.alTocar(p));
-      this.teclas = this.input.keyboard.addKeys("UP,DOWN,LEFT,RIGHT,W,A,S,D,SPACE,ENTER");
+      // Sin "capturar" las teclas: si no, no se podrían escribir la a, d, s, w ni espacios en los campos de texto
+      this.teclas = this.input.keyboard.addKeys("UP,DOWN,LEFT,RIGHT,W,A,S,D,SPACE,ENTER", false);
+      this.input.keyboard.clearCaptures();
+      this.input.keyboard.disableGlobalCapture();
       this.actualizarMarcadores();
 
       if (partida) this.empezar();
@@ -817,6 +1042,29 @@
       const p = procesoActual();
       if (p && p.tipo === "cartas") this.generarCartas();
       this.actualizarMarcadores();
+    }
+
+    // Deja el mapa como al principio (al cancelar o salir de la partida)
+    reiniciarTodo() {
+      Object.keys(this.otros).forEach((id) => this.quitarOtro(id));
+      this.limpiarCartas();
+      this.tweens.killTweensOf(this.jugador);
+      this.jugador.anims.stop();
+      this.moviendo = false;
+      this.camino = [];
+      this.jugador.setVisible(false);
+      this.sombra.setVisible(false);
+      this.miEtiqueta.setVisible(false);
+      this.flecha.setVisible(false);
+      this.flechaBase = null;
+      MAPA.edificios.forEach((ed) => Graficos.marcar(this.dibujos[ed.id], null));
+    }
+
+    // Globito con el ícono de lo que está haciendo otro jugador
+    texBurbuja(icono) {
+      const clave = "burbuja-" + icono;
+      if (!this.textures.exists(clave)) this.textures.addCanvas(clave, Pixel.escalar(Pixel.burbuja(icono).c, 2));
+      return clave;
     }
 
     pxX(x) { return x * T + T / 2; }
@@ -933,6 +1181,17 @@
         v.sprite.setPosition(px, py);
       }
       v.x = o.x; v.y = o.y;
+      // qué está haciendo (si está respondiendo en un edificio o una carta)
+      const icono = o.panel && Pixel.ICONOS[o.panel] ? o.panel : null;
+      if (icono) {
+        if (!v.burbuja) v.burbuja = this.add.image(px, py, this.texBurbuja(icono)).setOrigin(0.5, 1).setDepth(99992);
+        else v.burbuja.setTexture(this.texBurbuja(icono));
+        v.burbuja.setVisible(true);
+      } else if (v.burbuja) v.burbuja.setVisible(false);
+      // avisos de su progreso
+      if (v.proc !== undefined && o.proc > v.proc && M.procesos[v.proc]) aviso(`${o.nombre} completó: ${M.procesos[v.proc].nombre}`, "check");
+      if (v.termino === false && o.termino) aviso(`¡${o.nombre} terminó todos los procesos!`, "llegada");
+      v.proc = o.proc; v.termino = !!o.termino;
       const rotulo = o.nombre + (o.termino ? " !" : "");
       if (v.nombre !== rotulo) { v.nombre = rotulo; v.texto.destroy(); v.texto = this.etiqueta(rotulo); }
     }
@@ -941,6 +1200,7 @@
       const v = this.otros[id];
       if (!v) return;
       v.sprite.destroy(); v.sombra.destroy(); v.texto.destroy();
+      if (v.burbuja) v.burbuja.destroy();
       delete this.otros[id];
     }
 
@@ -1031,12 +1291,13 @@
         v.sprite.setDepth(v.sprite.y);
         v.sombra.setPosition(v.sprite.x, v.sprite.y - 1).setDepth(v.sprite.y - 2);
         v.texto.setPosition(v.sprite.x, v.sprite.y - 46);
+        if (v.burbuja) v.burbuja.setPosition(v.sprite.x, v.sprite.y - 72 + this.rebote.v * 0.4);
       });
       if (this.flechaBase) {
         this.flecha.setPosition(this.flechaBase.x, this.flechaBase.y + this.rebote.v);
         if (this.cartas.length) this.actualizarMarcadores();
       }
-      if (!jugando || interiorAbierto || this.moviendo) return;
+      if (!jugando || interiorAbierto || this.moviendo || escribiendo() || !$("mj-pantalla").classList.contains("oculto")) return;
       const k = this.teclas;
       let dx = 0, dy = 0;
       if (k.LEFT.isDown || k.A.isDown) dx = -1;
@@ -1063,6 +1324,7 @@
   window.addEventListener("pagehide", () => { if (red && yo.fase === "sala") red.enviar({ t: "salir", id: yo.id }); });
 
   document.querySelectorAll("img[data-ico]").forEach((img) => { const cv = Pixel.iconoCanvas(img.dataset.ico, 2); if (cv) img.src = cv.toDataURL(); });
+  $("btn-menu").onclick = () => { if (!interiorAbierto) menuPartida(); };
 
   window.juego = new Phaser.Game({
     type: Phaser.AUTO,

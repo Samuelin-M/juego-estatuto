@@ -2,67 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#17241f">
-  <link rel="preload" href="lib/fuentes/jersey-10-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Carrera Docente — Multijugador</title>
-  <link rel="stylesheet" href="estilos.css?v=20261116e">
-  <link rel="stylesheet" href="multijugador.css?v=20261116e">
+  <!-- El multijugador ahora está dentro del juego (index.html). Esta página solo redirige,
+       para que sigan funcionando los enlaces y códigos QR de salas viejas. -->
+  <script>location.replace("index.html" + (location.search || "?mj=1"));</script>
+  <meta http-equiv="refresh" content="0; url=index.html?mj=1">
 </head>
-<body class="modo-mapa">
-  <div id="juego"></div>
-
-  <!-- Barra superior durante la partida -->
-  <header id="hud" class="oculto">
-    <div class="hud-cabecera">
-      <span id="hud-avatar"></span>
-      <div id="hud-objetivo">Objetivo</div>
-      <button id="btn-menu" class="btn-menu" aria-label="Menú" title="Menú"><img class="ico-px" data-ico="menu" alt=""></button>
-    </div>
-    <div class="hud-fila chips">
-      <span class="chip chip-puntos" id="hud-puntos"><img class="ico-px" data-ico="puntos" alt=""><span id="hud-puntos-t">0 pts</span></span>
-      <span class="chip" id="hud-anio"><img class="ico-px" data-ico="llegada" alt=""><span id="hud-anio-t">Año 1/5</span></span>
-      <span class="chip" id="hud-proceso"><img class="ico-px" data-ico="proceso" alt=""><span id="hud-proceso-t">0/4</span></span>
-      <span class="chip" id="hud-reloj"><img class="ico-px" data-ico="reloj" alt=""><span id="hud-reloj-t">0:00</span></span>
-    </div>
-    <div id="hud-ranking" class="ranking"></div>
-  </header>
-
-  <div id="aviso"></div>
-
-  <!-- Lista de espera al terminar el año (deja ver el mapa) -->
-  <aside id="espera-anio" class="espera-anio oculto"></aside>
-
-  <!-- Panel de los procesos y cartas -->
-  <section id="interior" class="oculto">
-    <div class="int-caja">
-      <div class="int-cabecera">
-        <span id="int-icono"></span>
-        <div>
-          <div id="int-nombre">Edificio</div>
-          <div id="int-arts"></div>
-        </div>
-      </div>
-      <div id="int-cuerpo"></div>
-      <div id="int-pie"></div>
-    </div>
-  </section>
-
-  <!-- Pantallas de sala, espera y podio (las arma multijugador.js) -->
-  <section id="mj-pantalla" class="pantalla">
-    <div class="pantalla-caja" id="mj-caja"></div>
-  </section>
-
-  <script src="lib/phaser.min.js?v=20261116e"></script>
-  <script src="lib/qrcode.js?v=20261116e"></script>
-  <script src="lib/supabase.min.js?v=20261116e"></script>
-  <script src="config.js?v=20261116e"></script>
-  <script src="mapa.js?v=20261116e"></script>
-  <script src="contenido.js?v=20261116e"></script>
-  <script src="pixel.js?v=20261116e"></script>
-  <script src="comun.js?v=20261116e"></script>
-  <script src="sprites.js?v=20261116e"></script>
-  <script src="red.js?v=20261116e"></script>
-  <script src="multijugador.js?v=20261116e"></script>
+<body style="background:#17241f;color:#f6f1e3;font-family:sans-serif;text-align:center;padding:40px">
+  <a href="index.html?mj=1" style="color:#f2c14e">Ir al multijugador</a>
 </body>
 </html>

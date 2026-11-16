@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#17241f">
   <title>Carrera Docente — Estatuto de Profesionalización</title>
   <link rel="preload" href="lib/fuentes/jersey-10-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="estilos.css?v=20261116e">
+  <link rel="stylesheet" href="estilos.css?v=20261117b">
+  <link rel="stylesheet" href="multijugador.css?v=20261117b">
 </head>
 <body class="modo-mapa">
   <div id="juego"></div>
@@ -27,6 +28,8 @@
   </header>
 
   <div id="aviso"></div>
+  <!-- Multijugador: lista de espera al terminar el año (deja ver el mapa) -->
+  <aside id="espera-anio" class="espera-anio oculto"></aside>
 
   <!-- Interior de un edificio / carta -->
   <section id="interior" class="oculto">
@@ -51,8 +54,8 @@
       <p id="subtitulo" class="suave centrado"></p>
       <button id="btn-individual" class="btn-principal btn-grande">Modo individual</button>
       <p class="suave pequeno centrado">Recorre el pueblo con tu personaje y construye tu carrera año por año.</p>
-      <a href="multijugador.html" class="btn-secundario btn-enlace btn-grande">Multijugador</a>
-      <p class="suave pequeno centrado">Hasta 3 jugadores en el mismo pueblo compiten por completar los procesos: cuenta acertar y ser rápido.</p>
+      <button id="btn-multijugador" class="btn-secundario btn-grande">Multijugador</button>
+      <p class="suave pequeno centrado">El mismo juego, hasta 3 jugadores en el mismo pueblo. Al final, un podio con los puntos de cada uno.</p>
       <p id="creditos" class="pie"></p>
     </div>
   </section>
@@ -122,6 +125,7 @@
       <div class="icono-grande" id="fin-icono"></div>
       <h2 id="fin-titulo">Fin</h2>
       <p id="fin-texto" class="centrado"></p>
+      <div id="fin-extra"></div>
       <ul id="fin-indicadores" class="lista-articulos"></ul>
       <p class="suave">Tu trayectoria:</p>
       <ul id="fin-historial" class="historial"></ul>
@@ -131,12 +135,17 @@
     </div>
   </section>
 
-  <script src="lib/phaser.min.js?v=20261116e"></script>
-  <script src="mapa.js?v=20261116e"></script>
-  <script src="contenido.js?v=20261116e"></script>
-  <script src="pixel.js?v=20261116e"></script>
-  <script src="comun.js?v=20261116e"></script>
-  <script src="sprites.js?v=20261116e"></script>
-  <script src="juego.js?v=20261116e"></script>
+  <!-- Multijugador: sala, espera y menú (las arma multijugador.js) -->
+  <section id="mj-pantalla" class="pantalla oculto">
+    <div class="pantalla-caja" id="mj-caja"></div>
+  </section>
+  <script src="lib/phaser.min.js?v=20261117b"></script>
+  <script src="mapa.js?v=20261117b"></script>
+  <script src="contenido.js?v=20261117b"></script>
+  <script src="pixel.js?v=20261117b"></script>
+  <script src="comun.js?v=20261117b"></script>
+  <script src="sprites.js?v=20261117b"></script>
+  <script src="multijugador.js?v=20261117b"></script>
+  <script src="juego.js?v=20261117b"></script>
 </body>
 </html>

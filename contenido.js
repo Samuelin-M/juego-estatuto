@@ -1,6 +1,6 @@
 /* ==========================================================================
    CONTENIDO DEL JUEGO — este es el archivo que el grupo edita.
-   Lo usan los dos modos: el individual y el multijugador (ambos en el mapa).
+   Es un solo juego: el multijugador usa este mismo contenido.
 
    Basado en la "Propuesta de dinámica" del grupo y en el Decreto 1278 de 2002
    (Estatuto de Profesionalización Docente), artículos 8 a 40.
@@ -241,8 +241,7 @@ const CONTENIDO = {
   //   aptitudes, psicotecnica, entrevista: 6 de cada una (2 fáciles, 2 intermedias, 2 difíciles), año 1
   //   colegio:      3 por año (1 de cada dificultad)  → 15 en total
   //   cartas:       6 por año (2 de cada dificultad)  → 30 en total
-  //   universidad:  3 (año 3, 1 de cada dificultad)
-  //   secretaria:   3 por año en los años 4 y 5       → 6 en total
+  //   secretaria:   3 por año en los años 4 y 5       → 6 en total (evaluación de competencias)
   bancos: {
     // CONCURSO DOCENTE (año 1): una pregunta de cada prueba.
     // En el modo individual, si se repite el concurso salen preguntas nuevas y más
@@ -862,42 +861,6 @@ const CONTENIDO = {
         ]
       }
     ],
-    // UNIVERSIDAD (formación, año 3 del multijugador).
-    universidad: [
-      {
-        anio: 3, dificultad: 1,
-        texto: "Pregunta 1 (universidad · año 3 · fácil): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        anio: 3, dificultad: 2,
-        texto: "Pregunta 2 (universidad · año 3 · intermedia): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        anio: 3, dificultad: 3,
-        texto: "Pregunta 3 (universidad · año 3 · difícil): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      }
-    ],
     // SECRETARÍA (escalafón, ascenso, directivos: años 4 y 5). En el individual se usa
     // en la evaluación de competencias.
     secretaria: [
@@ -971,37 +934,20 @@ const CONTENIDO = {
   },
 
   /* ============================ MULTIJUGADOR ============================ */
-  // Hasta 3 jugadores en el mismo mapa, cada uno con un personaje distinto.
-  // Se juega por años, como el modo individual: cada uno hace las tareas de su
-  // año (en orden) y, al terminar, espera a que todos terminen para pasar
-  // juntos al año siguiente. Entre más rápido termine el año, más puntos.
-  // A cada jugador le salen sus propias preguntas y situaciones.
+  // Es el mismo juego del modo individual (lo que se cambie arriba cambia en los dos).
+  // Solo agrega: hasta 3 jugadores en el mismo mapa, cada uno con un personaje distinto
+  // y sus propias preguntas; al terminar un año se espera a los demás para pasar juntos
+  // al siguiente; y estos puntos para el podio.
   multijugador: {
     maxJugadores: 3,
-    segundosPorPregunta: 20,
     puntosPorDificultad: [100, 150, 200],   // por acertar una pregunta o situación fácil, intermedia o difícil
-    bonoRapidez: 50,                        // máximo, si se responde al instante
+    bonoRapidez: 50,                        // máximo, si se responde al instante…
+    segundosPorPregunta: 20,                // …y baja hasta 0 en estos segundos (no hay límite para responder)
     bonoLlegadaAnio: [60, 30, 10],          // por terminar el año de 1.°, 2.° y 3.°
     bonoOportunidad: { vacante: 60, provisional: 30, reemplazo: 10, ninguna: 0 },
-    cartasPorAnio: 2,
-    esperaParaForzar: 45,                   // segundos de espera antes de que el anfitrión pueda pasar de año sin esperar
-    duracionMaximaMin: 45,
-    // Lo que hay que hacer cada año, en orden. La evaluación anual va al final y NO tiene
-    // preguntas: sale de lo que se hizo en el año (arts. 32 a 34).
-    tareasPorAnio: [
-      ["concurso", "colegio", "cartas", "evaluacion"],
-      ["colegio", "cartas", "evaluacion"],
-      ["universidad", "colegio", "cartas", "evaluacion"],
-      ["secretaria", "colegio", "cartas", "evaluacion"],
-      ["secretaria", "colegio", "cartas", "evaluacion"]
-    ],
-    tareas: {
-      concurso:    { nombre: "Concurso docente", edificio: "secretaria", articulos: "Arts. 8–13" },
-      colegio:     { nombre: "Clase en el colegio", edificio: "colegio", articulos: "Según el tema del año" },
-      cartas:      { nombre: "Situaciones inesperadas", articulos: "" },
-      universidad: { nombre: "Formación en la universidad", edificio: "universidad", articulos: "Arts. 21 y 38" },
-      secretaria:  { nombre: "Trámite en la Secretaría", edificio: "secretaria", articulos: "Arts. 10, 20–23, 35 y 36" },
-      evaluacion:  { nombre: "Evaluación anual de desempeño", edificio: "rectoria", articulos: "Arts. 31 a 34" }
-    }
+    puntosPorCarrera: 5,                    // × lo que sube el puntaje de carrera desde el inicio (indicadores, grado y cargo)
+    // La evaluación anual aprobada suma su porcentaje (por ejemplo, 72% → 72 puntos)
+    esperaParaForzar: 45,                   // segundos de espera antes de que el anfitrión pueda seguir sin esperar
+    duracionMaximaMin: 60
   }
 };

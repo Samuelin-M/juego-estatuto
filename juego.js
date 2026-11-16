@@ -1,5 +1,7 @@
 /* ==========================================================================
-   MODO INDIVIDUAL — mapa, movimiento y simulación de la carrera por años.
+   EL JUEGO — mapa, movimiento y simulación de la carrera por años.
+   Es el único modo de juego: el multijugador (multijugador.js) usa este mismo
+   juego y solo le agrega jugadores, puntos y podio a través de "extra".
    No hace falta editar este archivo para cambiar la historia: todo el
    contenido está en contenido.js.
    ========================================================================== */
@@ -17,9 +19,20 @@
   let jugando = false;
   let elegido = null;         // personaje escogido en la selección
 
+  // Agregados del multijugador. Si no hay multijugador, están vacíos y no hacen nada.
+  //   alMostrar(item, banco) → nodo opcional que se muestra sobre las respuestas
+  //   alResponder({ banco, item, correcta, ms }) → texto opcional de puntos
+  //   alPanel(id | null), alMover(casilla, dir), alEmpezar(), alConcurso(tipo), alEvaluar(r)
+  //   alCerrarAnio(anio, continuar): para esperar a los demás antes del siguiente año
+  //   alTerminar(), menu()
+  const extra = {};
+  const avisar = (nombre, ...args) => (extra[nombre] ? extra[nombre](...args) : undefined);
+  let notaPuntos = null;      // texto de puntos de la última respuesta (multijugador)
+
   /* ============================ utilidades ============================ */
 
   const lim = (n) => Math.max(0, Math.min(100, Math.round(n)));
+  const escribiendo = () => { const a = document.activeElement; return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"); };
 
   function nodo(tag, clase, texto) {
     const n = document.createElement(tag);
@@ -115,6 +128,24 @@
     return "funcionaria";
   }
   const globo = (texto) => nodo("div", "globo", texto);
+
+  // Respuestas de una pregunta o situación: mide el tiempo y avisa al multijugador
+  function opciones(item, banco, alElegir) {
+    const t0 = Date.now();
+    const frag = document.createDocumentFragment();
+    const arriba = avisar("alMostrar", item, banco);
+    if (arriba) frag.append(arriba);
+    frag.append(Comun.opciones(item, (op) => {
+      notaPuntos = avisar("alResponder", { banco, item, correcta: op.correcta === undefined ? null : Comun.esCorrecta(op), ms: Date.now() - t0 }) || null;
+      alElegir(op);
+    }));
+    return frag;
+  }
+  // Muestra los puntos ganados (solo en el multijugador)
+  function puntosGanados(c) {
+    if (notaPuntos) c.append(nodo("div", "nota-puntos", notaPuntos));
+    notaPuntos = null;
+  }
 
   function resultadoCaja(bien, titulo, detalle) {
     const d = nodo("div", "resultado-pregunta " + (bien === null ? "neutro" : bien ? "bien" : "mal"));
@@ -231,6 +262,7 @@
 
   function objetivo() {
     if (!E || E.fin) return { texto: "Fin de la partida" };
+    if (E.esperando) return { texto: `Terminaste el año ${E.esperando}: espera a que los demás terminen` };
     if (E.laboral === "aspirante") return { id: "secretaria", texto: E.sinPlaza ? "Objetivo: vuelve a presentarte al concurso en la Secretaría" : "Objetivo: ve a la Secretaría de Educación" };
     if (E.laboral === "provisional" && E.anioConcurso < E.anio) return { id: "secretaria", texto: "Objetivo: preséntate al nuevo concurso en la Secretaría" };
     if (!E.hechos.colegio) return { id: "colegio", texto: "Objetivo: ve a dar clase al Colegio" };
@@ -241,6 +273,7 @@
 
   // Devuelve { estado: "objetivo" | "opcional" | "hecho" | "bloqueado", motivo }
   function acceso(id) {
+    if (E.esperando) return { estado: "bloqueado", motivo: "Espera a que los demás terminen el año" };
     const obj = objetivo();
     if (obj.id === id) return { estado: "objetivo" };
     if (E.laboral === "aspirante") return { estado: "bloqueado", motivo: "Primero preséntate al concurso en la Secretaría" };
@@ -274,6 +307,7 @@
     $("int-nombre").textContent = nombre;
     $("int-arts").textContent = sub || "";
     $("interior").classList.remove("oculto");
+    avisar("alPanel", icono);
     return limpiarCuerpo();
   }
   function limpiarCuerpo() {
@@ -297,6 +331,7 @@
     $("interior").classList.add("oculto");
     interiorAbierto = false;
     dormirMapa(false);
+    avisar("alPanel", null);
     actualizarHud();
     if (pueblo) pueblo.actualizarMarcadores();
   }
@@ -318,17 +353,18 @@
 
   /* -------------------- situación con opciones (genérica) -------------------- */
   // Sirve para el colegio y para las cartas.
-  function situacion(cuerpo, item, npc, alTerminar, etiqueta) {
+  function situacion(cuerpo, item, npc, alTerminar, etiqueta, banco) {
     if (!item) { cuerpo.append(globo("Todavía no hay situaciones en este banco.")); accionVolver(null, alTerminar); return; }
     if (item.personaje) cuerpo.append(quien(item.personaje, npc));
     if (item.titulo) cuerpo.append(nodo("h3", "titulo-carta", item.titulo));
     cuerpo.append(nodo("div", "enunciado", item.texto));
     cuerpo.append(nodo("div", "elige", "¿Qué haces?"));
-    cuerpo.append(Comun.opciones(item, (op) => {
+    cuerpo.append(opciones(item, banco, (op) => {
       const c = limpiarCuerpo();
       E.evidencias.push({ nombre: etiqueta || item.titulo || "Situación", bien: op.correcta === undefined ? null : Comun.esCorrecta(op), efectos: op.efectos || {} });
       c.append(nodo("p", "respuesta-elegida", op.texto));
       if (op.correcta !== undefined) c.append(resultadoCaja(Comun.esCorrecta(op), Comun.esCorrecta(op) ? "¡Buena decisión!" : "No fue la mejor decisión"));
+      puntosGanados(c);
       if (op.consecuencia) c.append(globo(op.consecuencia));
       c.append(chipsEfectos(aplicar(op.efectos)));
       if (op.articulo || op.explicacion) c.append(tarjetaArticulo(op.articulo, op.explicacion));
@@ -409,7 +445,7 @@
       c.append(quien(id === "entrevista" ? "Jurado de la entrevista" : "Funcionaria de la Secretaría", id === "entrevista" ? "jurado" : "funcionaria"));
       c.append(nodo("div", "enunciado", item.texto));
       c.append(nodo("div", "elige", "Elige una respuesta"));
-      c.append(Comun.opciones(item, (op) => { resp[id] = op; retro(i, op, item, p); }));
+      c.append(opciones(item, p.banco, (op) => { resp[id] = op; retro(i, op, item, p); }));
       const ap = Comun.avisoPrueba(); if (ap) c.append(ap);
     }
 
@@ -418,6 +454,7 @@
       const bien = Comun.esCorrecta(op);
       const puntos = Math.round(Comun.valor(op) * p.peso);
       c.append(resultadoCaja(bien, bien ? "¡Correcto!" : "Incorrecto", `+${puntos} de ${Math.round(100 * p.peso)} puntos`));
+      puntosGanados(c);
       const cor = Comun.correctaDe(item);
       if (!bien && cor) c.append(con("p", "respuesta-elegida", "La respuesta correcta era: ", con("b", "", cor.texto)));
       if (p.minimo && Comun.valor(op) < p.minimo) {
@@ -453,6 +490,7 @@
       const op = fuera
         ? Object.assign({}, K.oportunidades.find((o) => o.tipo === "ninguna"), K.eliminado)
         : K.oportunidades.find((o) => total >= o.minimo);
+      avisar("alConcurso", op.tipo);
       c.append(caja("oportunidad " + op.tipo, fuera ? "No superaste la prueba eliminatoria" : op.tipo === "ninguna" ? "Sin plaza esta vez" : "Oportunidad laboral: " + op.nombre, ICONO_OPORTUNIDAD[op.tipo]));
       c.append(tarjetaArticulo(op.articulo, op.explicacion));
 
@@ -490,7 +528,7 @@
   function colegio() {
     const item = Comun.sacar("colegio", usadas("colegio"), null, null, E.anio);
     const c = abrirPanel("colegio", "Colegio", `Año ${E.anio} · ${textoSituacion()}`);
-    situacion(c, item, npcDe(item && item.personaje), () => { E.hechos.colegio = true; }, "Clase en el colegio");
+    situacion(c, item, npcDe(item && item.personaje), () => { E.hechos.colegio = true; }, "Clase en el colegio", "colegio");
   }
 
   /* ------------------------------ cartas ------------------------------ */
@@ -503,7 +541,7 @@
       if (carta.sprite) carta.sprite.destroy();
       const quedan = E.cartas.filter((x) => !x.tomada).length;
       setTimeout(() => aviso(quedan ? `Te queda ${quedan} carta por recoger` : "¡Cartas listas! Ve a la Rectoría", "carta"), 300);
-    }, item && item.titulo ? item.titulo : "Situación inesperada");
+    }, item && item.titulo ? item.titulo : "Situación inesperada", "cartas");
   }
 
   /* ----------------------------- universidad ----------------------------- */
@@ -600,12 +638,13 @@
     if (!q) { c.append(globo("Todavía no hay preguntas en el banco \"secretaria\".")); accionVolver(); return; }
     c.append(nodo("div", "enunciado", q.texto));
     c.append(nodo("div", "elige", "Elige una respuesta"));
-    c.append(Comun.opciones(q, (o) => {
+    c.append(opciones(q, "secretaria", (o) => {
       const acierto = Comun.esCorrecta(o);
       const total = lim(base + (acierto ? 10 : -10));
       E.hechos.secretaria = true;
       c = limpiarCuerpo();
       c.append(resultadoCaja(acierto, acierto ? "¡Correcto!" : "Incorrecto", `Resultado: ${total}%`));
+      puntosGanados(c);
       const cor = Comun.correctaDe(q);
       if (!acierto && cor) c.append(con("p", "respuesta-elegida", "La respuesta correcta era: ", con("b", "", cor.texto)));
       if (q.articulo || q.explicacion) c.append(tarjetaArticulo(q.articulo, q.explicacion));
@@ -748,6 +787,7 @@
 
   function cerrarAnio(r) {
     const A = C.evaluacionAnual;
+    avisar("alEvaluar", r);
     // 1. Consecuencias de la evaluación
     if (E.laboral === "prueba") {
       if (r >= A.minimo && (E.pj.titulo !== "profesional" || pedagogiaAcreditada())) {
@@ -795,8 +835,23 @@
     E.cartas = [];
 
     if (E.laboral === "excluido" || E.anio > C.aniosDeJuego) { E.fin = true; cerrarPanel(); pantallaFinal(); return; }
-    if (E.laboral !== "aspirante" && pueblo) pueblo.generarCartas(2);
     cerrarPanel();
+    // En el multijugador, se espera a que los demás terminen el año antes de seguir
+    if (extra.alCerrarAnio) {
+      E.esperando = E.anio - 1;
+      actualizarHud();
+      if (pueblo) pueblo.actualizarMarcadores();
+      extra.alCerrarAnio(E.esperando, empezarAnio);
+    } else empezarAnio();
+  }
+
+  // Arranca el año en curso: cartas nuevas y aviso del tema
+  function empezarAnio() {
+    if (!E || E.fin) return;
+    E.esperando = 0;
+    if (E.laboral !== "aspirante" && pueblo) pueblo.generarCartas(2);
+    actualizarHud();
+    if (pueblo) pueblo.actualizarMarcadores();
     const tema = (C.anios || []).find((t) => t.anio === E.anio);
     aviso(`Comienza el año ${E.anio}` + (tema ? `: ${tema.tema}` : ""), "reloj");
   }
@@ -816,6 +871,7 @@
     const esc = $("menu-escena");
     if (!esc.firstChild) esc.append(Pixel.escenaMenu(C.personajes, 3));
     $("btn-individual").onclick = indicacion;
+    $("btn-multijugador").onclick = () => { if (window.Multijugador) window.Multijugador.abrir(); };
     mostrar("menu");
   }
 
@@ -919,13 +975,39 @@
 
   function empezar(pj) {
     E = nuevoEstado(pj);
+    if (extra.inicio) E.pos = Object.assign({}, extra.inicio);
     construirHud();
     mostrar(null);
     $("hud").classList.remove("oculto");
     jugando = true;
-    if (pueblo) pueblo.reiniciar(pj);
+    if (pueblo) pueblo.reiniciar(pj, E.pos);
     actualizarHud();
     aviso("Toca el mapa para caminar. Ve a la Secretaría.", "secretaria");
+    avisar("alEmpezar");
+  }
+
+  // Retoma una partida guardada (el multijugador lo usa si se recarga la página)
+  function restaurar(guardado) {
+    E = guardado;
+    E.pj = C.personajes.find((p) => p.id === (E.pj && E.pj.id)) || E.pj;
+    E.cartas = (E.cartas || []).filter((x) => !x.tomada);
+    construirHud();
+    mostrar(null);
+    if (E.fin) { pantallaFinal(); return; }
+    $("hud").classList.remove("oculto");
+    jugando = true;
+    if (pueblo) { pueblo.reiniciar(E.pj, E.pos); pueblo.dibujarCartas(); }
+    actualizarHud();
+  }
+
+  // Termina la partida ahora (el multijugador lo usa cuando se acaba el tiempo)
+  function terminarYa(motivo) {
+    if (!E || E.fin) return;
+    E.fin = true;
+    $("interior").classList.add("oculto");
+    interiorAbierto = false;
+    dormirMapa(false);
+    pantallaFinal(motivo);
   }
 
   function puntajeCarrera() {
@@ -938,7 +1020,7 @@
     return Math.round(prom + bonus);
   }
 
-  function pantallaFinal() {
+  function pantallaFinal(motivo) {
     jugando = false;
     const p = puntajeCarrera();
     const excluido = E.laboral === "excluido";
@@ -948,6 +1030,7 @@
     $("fin-titulo").textContent = `${E.pj.nombre}: ${textoSituacion()}`;
     $("fin-texto").textContent = excluido
       ? "Tu carrera terminó antes de tiempo por dos evaluaciones insatisfactorias seguidas."
+      : motivo ? `${motivo} Ibas en el año ${E.anio} con ${E.aniosExp} años de experiencia. Puntaje de carrera: ${p}.`
       : `Terminaste ${C.aniosDeJuego} años de juego con ${E.aniosExp} años de experiencia. Puntaje de carrera: ${p}.`;
     const inds = $("fin-indicadores");
     inds.innerHTML = "";
@@ -962,7 +1045,9 @@
     $("btn-reiniciar").onclick = () => location.reload();
     $("hud").classList.add("oculto");
     if (pueblo && pueblo.flecha) pueblo.flecha.setVisible(false);
+    $("fin-extra").innerHTML = "";
     mostrar("final");
+    avisar("alTerminar");
   }
 
   /* ============================== el pueblo ============================== */
@@ -1000,11 +1085,21 @@
       this.input.keyboard.clearCaptures();
       this.input.keyboard.disableGlobalCapture();
       this.actualizarMarcadores();
+      // Si la partida ya había empezado (por ejemplo, al retomarla), se pone al día
+      if (E && jugando) { this.reiniciar(E.pj, E.pos); this.dibujarCartas(); }
     }
 
-    reiniciar(pj) {
+    reiniciar(pj, pos) {
       this.pj = pj.id;
-      this.jugador.setTexture(this.pj + "-arriba1");
+      this.tweens.killTweensOf(this.jugador);
+      this.camino = [];
+      this.moviendo = false;
+      if (pos) {
+        this.casilla = { x: pos.x, y: pos.y };
+        this.dir = pos.dir || "arriba";
+        this.jugador.setPosition(this.pxX(pos.x), this.pxY(pos.y)).setFlipX(false);
+      }
+      this.jugador.setTexture(this.pj + "-" + this.dir + "1");
       this.ajustarZoom();
       this.actualizarMarcadores();
     }
@@ -1081,11 +1176,19 @@
       for (let i = 0; i < n && libres.length; i++) {
         const pos = libres.splice(Math.floor(Math.random() * libres.length), 1)[0];
         const item = Comun.sacar("cartas", usadas("cartas"), null, null, E.anio);
-        const base = pos.y * T + T;
-        const sprite = this.add.image(this.pxX(pos.x), pos.y * T + T / 2 + 4, "carta").setDepth(base);
-        this.tweens.add({ targets: sprite, y: sprite.y - 5, duration: 600, yoyo: true, repeat: -1, ease: "Sine.inOut", delay: i * 200 });
-        E.cartas.push({ item, x: pos.x, y: pos.y, sprite, tomada: false });
+        E.cartas.push({ item, x: pos.x, y: pos.y, tomada: false });
       }
+      this.dibujarCartas();
+    }
+
+    // Pone en el mapa las cartas que todavía no se han recogido
+    dibujarCartas() {
+      E.cartas.forEach((carta, i) => {
+        if (carta.tomada || carta.sprite) return;
+        const sprite = this.add.image(this.pxX(carta.x), carta.y * T + T / 2 + 4, "carta").setDepth(carta.y * T + T);
+        this.tweens.add({ targets: sprite, y: sprite.y - 5, duration: 600, yoyo: true, repeat: -1, ease: "Sine.inOut", delay: i * 200 });
+        carta.sprite = sprite;
+      });
       this.actualizarMarcadores();
     }
 
@@ -1119,6 +1222,13 @@
       this.camino = [];
       this.jugador.anims.stop();
       this.jugador.setTexture(this.pj + "-" + this.dir + "1");
+      this.contar();
+    }
+
+    // Guarda dónde está el personaje y le avisa al multijugador
+    contar() {
+      if (E) E.pos = { x: this.casilla.x, y: this.casilla.y, dir: this.dir };
+      avisar("alMover", this.casilla, this.dir);
     }
 
     paso() {
@@ -1137,6 +1247,7 @@
       this.jugador.anims.play(this.pj + "-caminar-" + this.dir, true);
       this.casilla = sig;
       this.moviendo = true;
+      this.contar();
       this.tweens.add({ targets: this.jugador, x: this.pxX(sig.x), y: this.pxY(sig.y), duration: 170, onComplete: () => this.paso() });
     }
 
@@ -1167,7 +1278,7 @@
       this.jugador.setDepth(this.jugador.y);
       this.sombra.setPosition(this.jugador.x, this.jugador.y - 1).setDepth(this.jugador.y - 2);
       if (this.flechaBase) this.flecha.setPosition(this.flechaBase.x, this.flechaBase.y + this.rebote.v);
-      if (!jugando || interiorAbierto || this.moviendo || !$("pausa").classList.contains("oculto")) return;
+      if (!jugando || interiorAbierto || this.moviendo || escribiendo() || !$("pausa").classList.contains("oculto") || !$("mj-pantalla").classList.contains("oculto")) return;
       const k = this.teclas;
       let dx = 0, dy = 0;
       if (k.LEFT.isDown || k.A.isDown) dx = -1;
@@ -1194,16 +1305,14 @@
 
   // Menú durante la partida: seguir, empezar de nuevo o volver al menú principal
   document.querySelectorAll("img[data-ico]").forEach((img) => { const cv = Pixel.iconoCanvas(img.dataset.ico, 2); if (cv) img.src = cv.toDataURL(); });
-  $("btn-menu").onclick = () => { if (E && !interiorAbierto) $("pausa").classList.remove("oculto"); };
+  $("btn-menu").onclick = () => {
+    if (!E || interiorAbierto) return;
+    if (extra.menu) extra.menu(); else $("pausa").classList.remove("oculto");
+  };
   $("btn-pausa-seguir").onclick = () => $("pausa").classList.add("oculto");
   $("btn-pausa-nueva").onclick = () => { location.hash = "nueva"; location.reload(); };
   $("btn-pausa-menu").onclick = () => { location.replace(location.pathname + location.search); };
 
-  if (location.hash === "#nueva") {
-    history.replaceState(null, "", location.pathname + location.search);
-    menu();
-    seleccion();
-  } else menu();
   window.juego = new Phaser.Game({
     type: Phaser.AUTO,
     parent: "juego",
@@ -1213,6 +1322,33 @@
     scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
     scene: [Pueblo]
   });
+
+  // Lo que el multijugador puede usar de este juego
+  window.Juego = {
+    extra,
+    estado: () => E,
+    pueblo: () => pueblo,
+    jugando: () => jugando,
+    // Empieza la carrera con un personaje ya elegido (en la sala): concurso → convocatoria → pueblo
+    iniciar(pj) { elegido = pj; introConcurso(); },
+    restaurar,
+    empezarAnio,
+    terminarYa,
+    aviso,
+    actualizarHud,
+    puntajeCarrera: () => (E ? puntajeCarrera() : 0),
+    situacion: () => (E ? textoSituacion() : ""),
+    menu,
+    mostrar
+  };
+
+  // El multijugador decide si arranca él (por ejemplo, al abrir el enlace de una sala o al retomar una partida)
+  if (window.Multijugador && window.Multijugador.arrancar()) { /* lo maneja multijugador.js */ }
+  else if (location.hash === "#nueva") {
+    history.replaceState(null, "", location.pathname + location.search);
+    menu();
+    seleccion();
+  } else menu();
 
   // Para pruebas automáticas
   window.__juego = { estado: () => E, entrar: (id) => entrar(id), pueblo: () => pueblo };

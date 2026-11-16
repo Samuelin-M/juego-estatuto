@@ -1,9 +1,10 @@
 /* ==========================================================================
    MAPA DEL PUEBLO
    Cada letra es una casilla de 32×32 px:
-     T = árbol (no se puede pasar)      g = pasto
-     . = camino                         f = flores
-     w = agua (fuente)                  B = edificio (no se puede pasar)
+     g = pasto      . = camino      f = flores        (se puede caminar)
+     T = árbol      B = edificio    w = fuente        (no se puede pasar)
+     b = banca      l = farol       k = arbusto       r = roca
+     p = tablero de convocatorias   m = buzón
    La puerta de cada edificio es la casilla de camino justo debajo de él.
    ========================================================================== */
 
@@ -14,31 +15,31 @@ const MAPA = {
     "TTTTTTTTTTTTTTTTTTTT", // 0
     "TggfggggggggggggfggT", // 1
     "TgBBBBBBggggBBBBBBgT", // 2
-    "TgBBBBBBggggBBBBBBgT", // 3
+    "TgBBBBBBgffgBBBBBBgT", // 3
     "TgBBBBBBggggBBBBBBgT", // 4
-    "TgBBBBBBggggBBBBBBgT", // 5
-    "Tgggg.gggggggg.ggggT", // 6  puertas de arriba
-    "Tgggg..........ggggT", // 7
-    "TgTgggggg..ggggggTgT", // 8
-    "Tgggggg......ggggggT", // 9  plaza
+    "TgBBBBBBpgggBBBBBBgT", // 5  tablero de convocatorias junto a la Secretaría
+    "Tgggl.gggggggg.lgggT", // 6  puertas de arriba, con faroles
+    "Tbggg..........gggbT", // 7
+    "TgTgggggk..kgggggTgT", // 8
+    "Tgggggl......lgggggT", // 9  plaza
     "Tgggggg..ww..ggggggT", // 10 fuente
-    "Tgggggg..ww..ggggggT", // 11
-    "Tgggggg......ggggggT", // 12
+    "Tgggggb..ww..bgggggT", // 11 bancas
+    "Tgggggf......fgggggT", // 12
     "TgTgggggg..ggggggTgT", // 13
-    "Tgggggggg..ggggggggT", // 14
+    "Tgrgggggg..ggggggkgT", // 14
     "TgBBBBBBg..gBBBBBBgT", // 15
     "TgBBBBBBg..gBBBBBBgT", // 16
     "TgBBBBBBg..gBBBBBBgT", // 17
     "TgBBBBBBg..gBBBBBBgT", // 18
-    "Tgggg.ggg..ggg.ggggT", // 19 puertas de abajo
+    "Tgggl.ggg..ggl.mgggT", // 19 puertas de abajo, faroles y buzón
     "Tgggg..........ggggT", // 20
     "Tggfggggg..ggggfgggT", // 21
     "TggggggTg..gTggggggT", // 22
-    "Tgggggggg..ggggggggT", // 23 aquí empieza el jugador
+    "Tggggkggg..gggkggggT", // 23 aquí empieza el jugador
     "TTTTTTTTTTTTTTTTTTTT"  // 24
   ],
 
-  inicio: { x: 9, y: 23 },
+  inicio: { x: 9, y: 22 },
 
   // Orden en que se deben visitar los edificios
   orden: ["secretaria", "colegio", "universidad", "rectoria"],

@@ -2,10 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#1d2b2a">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#17241f">
   <title>Carrera Docente — Estatuto de Profesionalización</title>
-  <link rel="stylesheet" href="estilos.css?v=20261115f">
+  <link rel="preload" href="lib/fuentes/jersey-10-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="estilos.css?v=20261116a">
 </head>
 <body class="modo-mapa">
   <div id="juego"></div>
@@ -13,14 +14,14 @@
   <!-- Barra superior -->
   <header id="hud" class="oculto">
     <div class="hud-cabecera">
-      <span id="hud-avatar">🧑‍🏫</span>
+      <span id="hud-avatar"></span>
       <div id="hud-objetivo">Objetivo</div>
     </div>
     <div id="hud-indicadores" class="indicadores"></div>
     <div class="hud-fila chips">
       <span class="chip" id="hud-anio">Año 1</span>
       <span class="chip" id="hud-situacion">Aspirante</span>
-      <span class="chip" id="hud-arts">📜 0</span>
+      <span class="chip" id="hud-arts">0</span>
     </div>
   </header>
 
@@ -30,50 +31,83 @@
   <section id="interior" class="oculto">
     <div class="int-caja">
       <div class="int-cabecera">
-        <span id="int-icono">🏛️</span>
+        <span id="int-icono"></span>
         <div>
           <div id="int-nombre">Edificio</div>
           <div id="int-arts"></div>
         </div>
       </div>
       <div id="int-cuerpo"></div>
+      <div id="int-pie"></div>
     </div>
   </section>
 
   <!-- Menú principal -->
   <section id="menu" class="pantalla">
     <div class="pantalla-caja">
-      <div class="icono-grande">🍎</div>
+      <div id="menu-escena" class="escena-menu"></div>
       <h1 id="titulo">Carrera Docente</h1>
       <p id="subtitulo" class="suave centrado"></p>
-      <button id="btn-individual" class="btn-principal btn-grande">🗺️ Modo individual</button>
+      <button id="btn-individual" class="btn-principal btn-grande">Modo individual</button>
       <p class="suave pequeno centrado">Recorre el pueblo con tu personaje y construye tu carrera año por año.</p>
-      <a href="multijugador.html" class="btn-opcion btn-enlace">🏁 Multijugador</a>
+      <a href="multijugador.html" class="btn-secundario btn-enlace btn-grande">Multijugador</a>
       <p class="suave pequeno centrado">Hasta 3 jugadores en el mismo pueblo compiten por completar los procesos: cuenta acertar y ser rápido.</p>
       <p id="creditos" class="pie"></p>
     </div>
   </section>
 
-  <!-- Selección de personaje -->
+  <!-- 1. Indicaciones -->
+  <section id="indicacion" class="pantalla oculto">
+    <div class="pantalla-caja">
+      <h2>Indicaciones</h2>
+      <div id="ind-texto" class="indicacion"></div>
+      <ul id="ind-lista" class="instrucciones"></ul>
+      <button id="btn-ind-seguir" class="btn-principal btn-grande">Continuar</button>
+      <button id="btn-ind-volver" class="btn-secundario">Volver</button>
+    </div>
+  </section>
+
+  <!-- 2. Selección de personaje -->
   <section id="seleccion" class="pantalla oculto">
     <div class="pantalla-caja ancha">
-      <h2>Elige tu personaje</h2>
+      <h2 id="sel-titulo">Escoge un personaje</h2>
       <p class="suave centrado">Cada uno empieza con indicadores distintos.</p>
       <div id="lista-personajes" class="lista-personajes"></div>
-      <ul class="instrucciones">
-        <li>👆 Toca el mapa para caminar y toca un edificio para entrar.</li>
-        <li>⬇️ La flecha amarilla marca tu objetivo. ★ = opcional.</li>
-        <li>🃏 Cada año aparecen cartas con situaciones inesperadas.</li>
-        <li>🗂️ Al final de cada año, el rector te evalúa: necesitas 60%.</li>
-      </ul>
-      <button id="btn-volver-menu" class="btn-secundario">← Volver</button>
+      <div class="barra-fija">
+        <button id="btn-sel-seguir" class="btn-principal btn-grande" disabled>Toca un personaje</button>
+      </div>
+      <button id="btn-volver-menu" class="btn-secundario">Volver</button>
+    </div>
+  </section>
+
+  <!-- 3. El concurso docente (art. 7) -->
+  <section id="intro-concurso" class="pantalla oculto">
+    <div class="pantalla-caja">
+      <div id="ic-escena" class="icono-grande"></div>
+      <h2 id="ic-titulo">Concurso docente</h2>
+      <div id="ic-texto" class="indicacion"></div>
+      <button id="btn-ic-seguir" class="btn-principal btn-grande">Ver la convocatoria</button>
+    </div>
+  </section>
+
+  <!-- 4. Convocatoria e inscripción -->
+  <section id="convocatoria" class="pantalla oculto">
+    <div class="pantalla-caja">
+      <h2 id="cv-titulo">Convocatoria</h2>
+      <div class="convocatoria">
+        <div id="cv-emisor" class="conv-emisor"></div>
+        <p id="cv-texto" class="conv-texto"></p>
+      </div>
+      <div id="cv-resultado" class="oculto"></div>
+      <button id="btn-inscribirse" class="btn-principal btn-grande">Inscribirse</button>
+      <button id="btn-ir-mapa" class="btn-principal btn-grande oculto">Ir al pueblo</button>
     </div>
   </section>
 
   <!-- Pantalla final -->
   <section id="final" class="pantalla oculto">
     <div class="pantalla-caja">
-      <div class="icono-grande" id="fin-icono">🏆</div>
+      <div class="icono-grande" id="fin-icono"></div>
       <h2 id="fin-titulo">Fin</h2>
       <p id="fin-texto" class="centrado"></p>
       <ul id="fin-indicadores" class="lista-articulos"></ul>
@@ -81,14 +115,16 @@
       <ul id="fin-historial" class="historial"></ul>
       <p class="suave">Artículos que descubriste:</p>
       <ul id="fin-articulos" class="lista-articulos"></ul>
-      <button id="btn-reiniciar" class="btn-principal">Jugar de nuevo</button>
+      <button id="btn-reiniciar" class="btn-principal btn-grande">Jugar de nuevo</button>
     </div>
   </section>
 
-  <script src="lib/phaser.min.js?v=20261115f"></script>
-  <script src="mapa.js?v=20261115f"></script>
-  <script src="contenido.js?v=20261115f"></script>
-  <script src="sprites.js?v=20261115f"></script>
-  <script src="juego.js?v=20261115f"></script>
+  <script src="lib/phaser.min.js?v=20261116a"></script>
+  <script src="mapa.js?v=20261116a"></script>
+  <script src="contenido.js?v=20261116a"></script>
+  <script src="pixel.js?v=20261116a"></script>
+  <script src="comun.js?v=20261116a"></script>
+  <script src="sprites.js?v=20261116a"></script>
+  <script src="juego.js?v=20261116a"></script>
 </body>
 </html>

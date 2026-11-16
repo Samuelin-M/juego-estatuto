@@ -9,16 +9,17 @@
   const T = MAPA.tam;
   const IND = Object.keys(C.indicadores);
   const $ = (id) => document.getElementById(id);
+  const ico = (nombre, escala) => Pixel.icono(nombre, escala || 2);
 
   let E = null;               // estado de la partida
   let pueblo = null;          // escena de Phaser
   let interiorAbierto = false;
   let jugando = false;
+  let elegido = null;         // personaje escogido en la selección
 
   /* ============================ utilidades ============================ */
 
   const lim = (n) => Math.max(0, Math.min(100, Math.round(n)));
-  const azar = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
   function nodo(tag, clase, texto) {
     const n = document.createElement(tag);
@@ -26,11 +27,18 @@
     if (texto !== undefined && texto !== null) n.textContent = texto;
     return n;
   }
+  // Crea un nodo con hijos (textos o nodos)
+  function con(tag, clase, ...hijos) {
+    const n = nodo(tag, clase);
+    hijos.forEach((h) => { if (h !== null && h !== undefined && h !== false) n.append(typeof h === "object" ? h : document.createTextNode(String(h))); });
+    return n;
+  }
   function boton(texto, clase, fn) {
     const b = nodo("button", clase || "btn-opcion", texto);
     b.onclick = fn;
     return b;
   }
+  const a = () => (E && Pixel.esMujer(E.pj) ? "a" : "o");     // terminación según el personaje
 
   function nuevoEstado(pj) {
     return {
@@ -48,15 +56,16 @@
       estudiando: null,           // { id, restantes }
       evalBajas: 0,
       anioConcurso: 0,
+      intentos: 0,                // veces que se ha presentado al concurso (sube la dificultad)
       hechos: {},
       cartas: [],
-      usadosColegio: [],
-      usadasCartas: [],
+      usadas: {},                 // preguntas ya usadas de cada banco
       articulos: [],
       historial: [],
       fin: false
     };
   }
+  const usadas = (banco) => (E.usadas[banco] = E.usadas[banco] || []);
 
   function aplicar(efectos) {
     const cambios = [];
@@ -74,24 +83,57 @@
     const cont = nodo("div", "efectos");
     if (!cambios.length) { cont.append(nodo("span", "efecto neutro", "Sin cambios en tus indicadores")); return cont; }
     cambios.forEach(({ k, d }) => {
-      const i = C.indicadores[k];
-      cont.append(nodo("span", "efecto " + (d > 0 ? "positivo" : "negativo"), `${d > 0 ? "+" : ""}${d} ${i.icono} ${i.nombre}`));
+      cont.append(con("span", "efecto " + (d > 0 ? "positivo" : "negativo"), ico(k), `${d > 0 ? "+" : ""}${d} ${C.indicadores[k].nombre}`));
     });
     return cont;
   }
 
   function descubrir(articulo) {
-    if (articulo && !E.articulos.includes(articulo)) { E.articulos.push(articulo); return true; }
+    if (Comun.articuloReal(articulo) && !E.articulos.includes(articulo)) { E.articulos.push(articulo); return true; }
     return false;
   }
 
   function tarjetaArticulo(articulo, explicacion) {
     const nuevo = descubrir(articulo);
     const t = nodo("div", "tarjeta-articulo");
-    t.append(nodo("div", "art-titulo", (nuevo ? "📜 Nuevo artículo · " : "📜 ") + articulo));
-    t.append(nodo("p", "", explicacion));
+    t.append(con("div", "art-titulo", ico("articulo"), (nuevo ? "Nuevo artículo · " : "") + (articulo || "Estatuto docente")));
+    if (explicacion) t.append(nodo("p", "", explicacion));
     actualizarHud();
     return t;
+  }
+
+  // Quién habla: carita en pixel art + nombre
+  function quien(nombre, npc) {
+    return con("div", "personaje", Pixel.cara(npc || "funcionaria", 2), nombre);
+  }
+  function npcDe(texto) {
+    const t = (texto || "").toLowerCase();
+    if (/rector|coordinador|director/.test(t)) return "rector";
+    if (/estudiante|alumn|niñ|joven/.test(t)) return "estudiante";
+    if (/madre|padre|acudiente|mamá|papá|familia/.test(t)) return "asesora";
+    return "funcionaria";
+  }
+  const globo = (texto) => nodo("div", "globo", texto);
+
+  function resultadoCaja(bien, titulo, detalle) {
+    const d = nodo("div", "resultado-pregunta " + (bien === null ? "neutro" : bien ? "bien" : "mal"));
+    if (bien !== null) d.append(ico(bien ? "check" : "cruz", 3));
+    d.append(nodo("div", "rp-titulo", titulo));
+    if (detalle) d.append(nodo("div", "rp-puntos", detalle));
+    return d;
+  }
+
+  const ICONO_OPORTUNIDAD = { vacante: "check", provisional: "proceso", reemplazo: "reloj", ninguna: "cruz" };
+  function caja(clase, texto, icono) {
+    return con("div", clase, icono ? ico(icono, 2) : null, nodo("div", "oportunidad-titulo", texto));
+  }
+
+  function filaTabla(texto, valor, nota, total, icono) {
+    const f = nodo("div", "fila" + (total ? " total" : ""));
+    const izq = con("div", "fila-texto", icono ? con("span", "fila-ico", ico(icono), texto) : texto);
+    if (nota) izq.append(nodo("div", "fila-nota", nota));
+    f.append(izq, nodo("div", "fila-valor", valor));
+    return f;
   }
 
   function registrar(texto) { E.historial.push(`Año ${E.anio}: ${texto}`); }
@@ -114,7 +156,7 @@
 
   function textoSituacion() {
     switch (E.laboral) {
-      case "aspirante": return "Aspirante";
+      case "aspirante": return E.sinPlaza ? "Aspirante" : "Inscrit" + a();
       case "provisional": return "Provisional";
       case "prueba": return "Periodo de prueba";
       case "carrera": return (E.cargo !== "Docente" ? E.cargo + " · " : "") + `Grado ${E.grado} · Nivel ${E.nivel}`;
@@ -141,55 +183,58 @@
     IND.forEach((k) => {
       const v = E.ind[k];
       $("ind-" + k + "-v").textContent = v;
-      const barra = $("ind-" + k + "-b");
-      barra.style.width = v + "%";
+      $("ind-" + k + "-b").style.width = v + "%";
     });
-    $("hud-anio").textContent = `Año ${Math.min(E.anio, C.aniosDeJuego)}/${C.aniosDeJuego}`;
+    $("hud-anio-t").textContent = `Año ${Math.min(E.anio, C.aniosDeJuego)}/${C.aniosDeJuego}`;
     $("hud-situacion").textContent = textoSituacion();
-    $("hud-arts").textContent = "📜 " + E.articulos.length;
-    $("hud-avatar").textContent = E.pj.icono;
+    $("hud-arts-t").textContent = E.articulos.length + (E.articulos.length === 1 ? " artículo" : " artículos");
     $("hud-objetivo").textContent = objetivo().texto;
   }
 
   function construirHud() {
+    $("hud-avatar").innerHTML = "";
+    $("hud-avatar").append(Pixel.cara(E.pj, 3));
     const cont = $("hud-indicadores");
     cont.innerHTML = "";
     IND.forEach((k) => {
       const i = C.indicadores[k];
       const fila = nodo("div", "ind");
-      fila.title = i.descripcion;
-      fila.append(nodo("span", "ind-icono", i.icono));
+      fila.title = i.nombre + ": " + i.descripcion;
       const barra = nodo("div", "barra");
-      const relleno = nodo("div", "barra-relleno");
+      const relleno = nodo("div", "barra-relleno ind-" + k);
       relleno.id = "ind-" + k + "-b";
-      relleno.classList.add("ind-" + k);
       barra.append(relleno);
-      fila.append(barra);
       const v = nodo("span", "ind-valor", "0");
       v.id = "ind-" + k + "-v";
-      fila.append(v);
+      fila.append(ico(k), barra, v);
       cont.append(fila);
     });
+    const chipAnio = $("hud-anio"); chipAnio.innerHTML = "";
+    chipAnio.append(ico("reloj"), con("span", "", "")); chipAnio.lastChild.id = "hud-anio-t";
+    const chipArts = $("hud-arts"); chipArts.innerHTML = "";
+    chipArts.append(ico("articulo"), con("span", "", "")); chipArts.lastChild.id = "hud-arts-t";
   }
 
   let tAviso;
-  function aviso(msg) {
+  function aviso(msg, icono) {
     const el = $("aviso");
-    el.textContent = msg;
+    el.innerHTML = "";
+    if (icono) el.append(ico(icono));
+    el.append(nodo("span", "", msg));
     el.classList.add("visible");
     clearTimeout(tAviso);
-    tAviso = setTimeout(() => el.classList.remove("visible"), 2600);
+    tAviso = setTimeout(() => el.classList.remove("visible"), 2800);
   }
 
   /* ========================= objetivos y acceso ========================= */
 
   function objetivo() {
     if (!E || E.fin) return { texto: "Fin de la partida" };
-    if (E.laboral === "aspirante") return { id: "secretaria", texto: "Objetivo: preséntate al concurso en la Secretaría" };
+    if (E.laboral === "aspirante") return { id: "secretaria", texto: E.sinPlaza ? "Objetivo: vuelve a presentarte al concurso en la Secretaría" : "Objetivo: ve a la Secretaría de Educación" };
     if (E.laboral === "provisional" && E.anioConcurso < E.anio) return { id: "secretaria", texto: "Objetivo: preséntate al nuevo concurso en la Secretaría" };
     if (!E.hechos.colegio) return { id: "colegio", texto: "Objetivo: ve a dar clase al Colegio" };
     const quedan = E.cartas.filter((c) => !c.tomada).length;
-    if (quedan) return { carta: true, texto: `Objetivo: recoge las cartas del año 🃏 (${quedan})` };
+    if (quedan) return { carta: true, texto: `Objetivo: recoge las cartas del año (${quedan})` };
     return { id: "rectoria", texto: "Objetivo: ve a la Rectoría para tu evaluación anual" };
   }
 
@@ -197,7 +242,7 @@
   function acceso(id) {
     const obj = objetivo();
     if (obj.id === id) return { estado: "objetivo" };
-    if (E.laboral === "aspirante") return { estado: "bloqueado", motivo: "Primero consigue una plaza en el concurso de la Secretaría" };
+    if (E.laboral === "aspirante") return { estado: "bloqueado", motivo: "Primero preséntate al concurso en la Secretaría" };
     if (obj.id === "secretaria") return { estado: "bloqueado", motivo: "Primero preséntate al nuevo concurso en la Secretaría" };
     switch (id) {
       case "secretaria": return E.hechos.secretaria ? { estado: "hecho", motivo: "Ya hiciste un trámite en la Secretaría este año" } : { estado: "opcional" };
@@ -212,7 +257,10 @@
 
   function abrirPanel(icono, nombre, sub) {
     interiorAbierto = true;
-    $("int-icono").textContent = icono;
+    $("aviso").classList.remove("visible");
+    const ic = $("int-icono");
+    ic.innerHTML = "";
+    ic.append(ico(icono, 3));
     $("int-nombre").textContent = nombre;
     $("int-arts").textContent = sub || "";
     $("interior").classList.remove("oculto");
@@ -222,7 +270,18 @@
     const c = $("int-cuerpo");
     c.innerHTML = "";
     c.scrollTop = 0;
+    $("int-pie").innerHTML = "";
     return c;
+  }
+  // Botón del pie del panel (siempre visible). Solo se puede tocar una vez.
+  function accion(texto, fn, clase) {
+    const b = boton(texto, clase || "btn-principal", () => {
+      if (b.disabled) return;
+      $("int-pie").querySelectorAll("button").forEach((x) => { x.disabled = true; });
+      fn();
+    });
+    $("int-pie").append(b);
+    return b;
   }
   function cerrarPanel() {
     $("interior").classList.add("oculto");
@@ -230,13 +289,13 @@
     actualizarHud();
     if (pueblo) pueblo.actualizarMarcadores();
   }
-  function botonVolver(texto, antes) {
-    return boton(texto || "Volver al mapa", "btn-principal", () => { if (antes) antes(); cerrarPanel(); });
+  function accionVolver(texto, antes) {
+    return accion(texto || "Volver al mapa", () => { if (antes) antes(); cerrarPanel(); });
   }
 
   function entrar(id) {
-    const a = acceso(id);
-    if (a.estado === "bloqueado" || a.estado === "hecho") { aviso((a.estado === "hecho" ? "✅ " : "🔒 ") + a.motivo); return; }
+    const ac = acceso(id);
+    if (ac.estado === "bloqueado" || ac.estado === "hecho") { aviso(ac.motivo, ac.estado === "hecho" ? "check" : "candado"); return; }
     if (id === "secretaria") {
       if (E.laboral === "aspirante" || (E.laboral === "provisional" && E.anioConcurso < E.anio)) concurso();
       else secretaria();
@@ -248,96 +307,137 @@
 
   /* -------------------- situación con opciones (genérica) -------------------- */
   // Sirve para el colegio y para las cartas.
-  function situacion(cuerpo, item, alTerminar) {
-    if (item.personaje) cuerpo.append(nodo("div", "personaje", item.personaje));
+  function situacion(cuerpo, item, npc, alTerminar) {
+    if (!item) { cuerpo.append(globo("Todavía no hay situaciones en este banco.")); accionVolver(null, alTerminar); return; }
+    if (item.personaje) cuerpo.append(quien(item.personaje, npc));
     if (item.titulo) cuerpo.append(nodo("h3", "titulo-carta", item.titulo));
     cuerpo.append(nodo("div", "enunciado", item.texto));
-    cuerpo.append(nodo("div", "elige", "Elige una respuesta"));
-    const ops = nodo("div", "opciones respuestas");
-    item.opciones.forEach((op) => ops.append(boton(op.texto, "btn-opcion", () => {
+    cuerpo.append(nodo("div", "elige", "¿Qué haces?"));
+    cuerpo.append(Comun.opciones(item, (op) => {
       const c = limpiarCuerpo();
       c.append(nodo("p", "respuesta-elegida", op.texto));
-      if (op.consecuencia) c.append(nodo("div", "globo", op.consecuencia));
+      if (op.correcta !== undefined) c.append(resultadoCaja(Comun.esCorrecta(op), Comun.esCorrecta(op) ? "¡Buena decisión!" : "No fue la mejor decisión"));
+      if (op.consecuencia) c.append(globo(op.consecuencia));
       c.append(chipsEfectos(aplicar(op.efectos)));
-      if (op.articulo) c.append(tarjetaArticulo(op.articulo, op.explicacion));
-      c.append(botonVolver("Volver al mapa", alTerminar));
-    })));
-    cuerpo.append(ops);
-  }
-
-  function siguienteDe(lista, usados) {
-    let libres = lista.filter((x) => !usados.includes(x.id));
-    if (!libres.length) { usados.length = 0; libres = lista.slice(); }
-    const item = azar(libres);
-    usados.push(item.id);
-    return item;
+      if (op.articulo || op.explicacion) c.append(tarjetaArticulo(op.articulo, op.explicacion));
+      accionVolver("Volver al mapa", alTerminar);
+    }));
+    const ap = Comun.avisoPrueba(); if (ap) cuerpo.append(ap);
   }
 
   /* ------------------------------ concurso ------------------------------ */
 
   function concurso() {
     const K = C.concurso;
-    const respuestas = {};
+    const est = C.introduccion.estructura;
+    E.intentos++;
+    const nivel = Math.min(3, E.intentos);
+    const orden = K.orden || K.pruebas.map((p) => p.id).concat("antecedentes");
+    const prueba = {};
+    K.pruebas.forEach((p) => { prueba[p.id] = { p, item: Comun.sacar(p.banco, usadas(p.banco), nivel) }; });
     const antecedentes = Math.round((E.ind.experiencia + E.ind.formacion) / 2);
-    let c = abrirPanel("🏛️", "Secretaría de Educación", "Concurso docente · Arts. 8–15");
+    const resp = {};
+    const nombreEtapa = (i) => (est.etapas[i] && est.etapas[i].nombre) || orden[i];
+    const peso = (id) => (id === "antecedentes" ? K.pesoAntecedentes : prueba[id] ? prueba[id].p.peso : 0);
 
-    c.append(nodo("div", "personaje", "👩‍💼 Funcionaria de la Secretaría"));
-    c.append(nodo("div", "globo",
-      (E.laboral === "provisional"
-        ? "Para tener derechos de carrera tiene que ganar el concurso y aprobar el periodo de prueba."
-        : "Bienvenido al concurso docente.") +
-      " Le haremos tres pruebas, y su hoja de vida cuenta como valoración de antecedentes."));
-    const tabla = nodo("div", "tabla");
-    K.componentes.forEach((comp) => tabla.append(filaTabla(comp.nombre, Math.round(comp.peso * 100) + "%")));
-    tabla.append(filaTabla(`Valoración de antecedentes (experiencia y formación): ${antecedentes}`, Math.round(K.pesoAntecedentes * 100) + "%"));
-    c.append(tabla);
+    let c = abrirPanel("secretaria", "Secretaría de Educación", "Concurso docente · Arts. 8–15");
+    c.append(quien("Funcionaria de la Secretaría", "funcionaria"));
+    c.append(globo(E.intentos === 1
+      ? `¡Hola, ${E.pj.nombre}! Bienvenid${a()} al concurso docente.`
+      : `De nuevo por aquí, ${E.pj.nombre}. Es tu intento número ${E.intentos}: te tocarán preguntas distintas` + (E.intentos <= 3 ? ` y más difíciles (nivel ${nivel}).` : " del nivel más difícil.")));
+    c.append(nodo("h3", "", est.titulo));
+    c.append(nodo("p", "", est.texto));
+    const ol = nodo("ol", "etapas");
+    orden.forEach((id, i) => {
+      const et = est.etapas[i] || {};
+      ol.append(con("li", "", con("div", "", con("b", "", et.nombre || id), ": " + (et.descripcion || ""), " ", nodo("span", "peso", Math.round(peso(id) * 100) + "%"))));
+    });
+    c.append(ol);
     c.append(tarjetaArticulo("Art. 9 · Etapas del concurso", "El concurso clasifica a los aspirantes por mérito con la prueba de aptitudes y competencias básicas, la prueba psicotécnica, la entrevista y la valoración de antecedentes, y con eso arma la lista de elegibles."));
-    c.append(boton("Empezar las pruebas", "btn-principal", () => pregunta(0)));
+    accion("Empezar las pruebas", () => etapa(0));
 
-    function pregunta(i) {
-      const comp = K.componentes[i];
+    function cabecera(i) {
       c = limpiarCuerpo();
-      c.append(nodo("div", "paso", `Prueba ${i + 1} de ${K.componentes.length} · ${comp.nombre}`));
-      c.append(nodo("div", "personaje", comp.personaje));
-      c.append(nodo("div", "enunciado", comp.texto));
+      c.append(con("div", "paso", `Etapa ${i + 1} de ${orden.length} · ${nombreEtapa(i)}`, " ", nodo("span", "nivel", "Nivel " + nivel)));
+      return c;
+    }
+
+    function etapa(i) {
+      if (i >= orden.length) { resultado(); return; }
+      const id = orden[i];
+      if (id === "antecedentes") {
+        cabecera(i);
+        c.append(quien("Funcionaria de la Secretaría", "funcionaria"));
+        c.append(globo("Revisamos tu hoja de vida: tus títulos y tu experiencia."));
+        const tabla = nodo("div", "tabla");
+        tabla.append(filaTabla("Experiencia", String(E.ind.experiencia), null, false, "experiencia"));
+        tabla.append(filaTabla("Formación", String(E.ind.formacion), null, false, "formacion"));
+        tabla.append(filaTabla("Valoración de antecedentes", antecedentes + "/100", null, true));
+        c.append(tabla);
+        accion(i + 1 < orden.length ? "Siguiente etapa" : "Ver resultados", () => etapa(i + 1));
+        return;
+      }
+      const { p, item } = prueba[id];
+      cabecera(i);
+      if (!item) {
+        resp[id] = { valor: 50 };
+        c.append(globo("Todavía no hay preguntas en el banco \"" + p.banco + "\"."));
+        accion("Siguiente etapa", () => etapa(i + 1));
+        return;
+      }
+      c.append(quien(id === "entrevista" ? "Jurado de la entrevista" : "Funcionaria de la Secretaría", id === "entrevista" ? "jurado" : "funcionaria"));
+      c.append(nodo("div", "enunciado", item.texto));
       c.append(nodo("div", "elige", "Elige una respuesta"));
-      const ops = nodo("div", "opciones respuestas");
-      comp.opciones.forEach((op) => ops.append(boton(op.texto, "btn-opcion", () => {
-        respuestas[comp.id] = op;
-        if (i + 1 < K.componentes.length) pregunta(i + 1);
-        else resultado();
-      })));
-      c.append(ops);
+      c.append(Comun.opciones(item, (op) => { resp[id] = op; retro(i, op, item, p); }));
+      const ap = Comun.avisoPrueba(); if (ap) c.append(ap);
+    }
+
+    function retro(i, op, item, p) {
+      cabecera(i);
+      const bien = Comun.esCorrecta(op);
+      const puntos = Math.round(Comun.valor(op) * p.peso);
+      c.append(resultadoCaja(bien, bien ? "¡Correcto!" : "Incorrecto", `+${puntos} de ${Math.round(100 * p.peso)} puntos`));
+      const cor = Comun.correctaDe(item);
+      if (!bien && cor) c.append(con("p", "respuesta-elegida", "La respuesta correcta era: ", con("b", "", cor.texto)));
+      if (item.articulo || item.explicacion) c.append(tarjetaArticulo(item.articulo, item.explicacion));
+      accion(i + 1 < orden.length ? "Siguiente etapa" : "Ver resultados", () => etapa(i + 1));
     }
 
     function resultado() {
       let total = antecedentes * K.pesoAntecedentes;
       c = limpiarCuerpo();
-      c.append(nodo("div", "personaje", "📋 Resultados del concurso"));
+      c.append(quien("Resultados del concurso", "funcionaria"));
       const tabla = nodo("div", "tabla");
-      K.componentes.forEach((comp) => {
-        const op = respuestas[comp.id];
-        total += op.valor * comp.peso;
-        tabla.append(filaTabla(`${comp.nombre}: ${op.valor}/100`, `+${(op.valor * comp.peso).toFixed(1)}`, op.comentario));
+      orden.forEach((id, i) => {
+        if (id === "antecedentes") {
+          tabla.append(filaTabla(`${nombreEtapa(i)}: ${antecedentes}/100`, `+${(antecedentes * K.pesoAntecedentes).toFixed(1)}`));
+          return;
+        }
+        const pr = prueba[id];
+        const v = Comun.valor(resp[id]);
+        total += v * pr.p.peso;
+        tabla.append(filaTabla(`${nombreEtapa(i)}: ${v}/100`, `+${(v * pr.p.peso).toFixed(1)}`, resp[id] && resp[id].comentario));
       });
-      tabla.append(filaTabla(`Antecedentes: ${antecedentes}/100`, `+${(antecedentes * K.pesoAntecedentes).toFixed(1)}`));
       total = Math.round(total);
       tabla.append(filaTabla("Puntaje del concurso", String(total), null, true));
       c.append(tabla);
 
       const op = K.oportunidades.find((o) => total >= o.minimo);
-      c.append(caja("oportunidad " + op.tipo, op.tipo === "ninguna" ? "Sin plaza esta vez" : "Oportunidad laboral: " + op.nombre));
+      c.append(caja("oportunidad " + op.tipo, op.tipo === "ninguna" ? "Sin plaza esta vez" : "Oportunidad laboral: " + op.nombre, ICONO_OPORTUNIDAD[op.tipo]));
       c.append(tarjetaArticulo(op.articulo, op.explicacion));
 
       if (op.tipo === "ninguna") {
-        c.append(boton("Presentarme en la siguiente convocatoria", "btn-principal", () => concurso()));
-        c.append(boton("Volver al mapa", "btn-opcion", cerrarPanel));
+        E.sinPlaza = true;
+        registrar(`Concurso (intento ${E.intentos}) con ${total} puntos → sin plaza.`);
+        c.append(nodo("p", "suave pequeno", "Si te presentas de nuevo, las preguntas serán distintas y más difíciles."));
+        accion("Presentarme en la siguiente convocatoria", () => concurso());
+        accion("Volver al mapa", cerrarPanel, "btn-secundario");
         return;
       }
       if (op.estado === "prueba" && E.pj.titulo === "profesional" && !pedagogiaAcreditada()) {
-        c.append(nodo("div", "alerta", "⚠️ Como no eres licenciada, antes de la evaluación del periodo de prueba debes estar cursando o haber terminado un programa de pedagogía o un posgrado en educación (art. 12). Inscríbete en la Universidad."));
+        c.append(nodo("div", "alerta", "Como no eres licenciada, antes de la evaluación del periodo de prueba debes estar cursando o haber terminado un programa de pedagogía o un posgrado en educación (art. 12). Inscríbete en la Universidad."));
       }
-      c.append(boton(E.laboral === "provisional" && op.estado === "provisional" ? "Seguir como provisional" : "Aceptar", "btn-principal", () => {
+      accion(E.laboral === "provisional" && op.estado === "provisional" ? "Seguir como provisional" : "Aceptar", () => {
         const antes = E.laboral;
         E.laboral = op.estado;
         E.oportunidad = op.nombre;
@@ -346,63 +446,54 @@
         if (E.cartas.length === 0 && pueblo) pueblo.generarCartas(2);
         cerrarPanel();
         if (op.estado === "prueba" && E.pj.titulo === "profesional" && !pedagogiaAcreditada()) {
-          aviso("⚠️ Para aprobar el periodo de prueba debes inscribirte en pedagogía en la Universidad (art. 12).");
-        } else if (op.estado === "prueba") aviso("🎉 ¡Nombramiento en periodo de prueba! Ve al Colegio.");
-        else aviso(antes === "provisional" ? "Sigues como provisional este año." : "Trabajarás como provisional. Ve al Colegio.");
-      }));
+          aviso("Para aprobar el periodo de prueba debes inscribirte en pedagogía en la Universidad (art. 12).", "formacion");
+        } else if (op.estado === "prueba") aviso("¡Nombramiento en periodo de prueba! Ve al Colegio.", "check");
+        else aviso(antes === "provisional" ? "Sigues como provisional este año." : "Trabajarás como provisional. Ve al Colegio.", "colegio");
+      });
     }
-  }
-
-  function caja(clase, texto) {
-    const d = nodo("div", clase);
-    d.append(nodo("div", "oportunidad-titulo", texto));
-    return d;
-  }
-
-  function filaTabla(texto, valor, nota, total) {
-    const f = nodo("div", "fila" + (total ? " total" : ""));
-    const izq = nodo("div", "fila-texto", texto);
-    if (nota) izq.append(nodo("div", "fila-nota", nota));
-    f.append(izq, nodo("div", "fila-valor", valor));
-    return f;
   }
 
   /* ------------------------------ colegio ------------------------------ */
 
   function colegio() {
-    const item = siguienteDe(C.colegio, E.usadosColegio);
-    const c = abrirPanel("🏫", "Colegio", `Año ${E.anio} · ${textoSituacion()}`);
-    situacion(c, item, () => { E.hechos.colegio = true; });
+    const item = Comun.sacar("colegio", usadas("colegio"));
+    const c = abrirPanel("colegio", "Colegio", `Año ${E.anio} · ${textoSituacion()}`);
+    situacion(c, item, npcDe(item && item.personaje), () => { E.hechos.colegio = true; });
   }
 
   /* ------------------------------ cartas ------------------------------ */
 
   function abrirCarta(carta) {
-    const item = C.cartas.find((x) => x.id === carta.id);
-    const c = abrirPanel("🃏", "Situación inesperada", "Carta " + item.tipo.toLowerCase());
-    situacion(c, item, () => {
+    const item = carta.item;
+    const c = abrirPanel("carta", "Situación inesperada", item && item.tipo ? "Carta " + item.tipo.toLowerCase() : "Carta");
+    situacion(c, item, "funcionaria", () => {
       carta.tomada = true;
       if (carta.sprite) carta.sprite.destroy();
       const quedan = E.cartas.filter((x) => !x.tomada).length;
-      setTimeout(() => aviso(quedan ? `🃏 Te queda ${quedan} carta por recoger` : "🃏 ¡Cartas listas! Ve a la Rectoría"), 300);
+      setTimeout(() => aviso(quedan ? `Te queda ${quedan} carta por recoger` : "¡Cartas listas! Ve a la Rectoría", "carta"), 300);
     });
   }
 
   /* ----------------------------- universidad ----------------------------- */
 
+  function efectosCortos(ef, signo) {
+    const s = nodo("span", "efectos-cortos");
+    Object.entries(ef || {}).forEach(([k, d]) => s.append(con("span", "", `${signo && d > 0 ? "+" : ""}${d}`, ico(k))));
+    return s;
+  }
+
   function universidad() {
-    const c = abrirPanel("🎓", "Universidad", "Formación · Arts. 21 y 38");
+    const c = abrirPanel("universidad", "Universidad", "Formación · Arts. 21 y 38");
+    c.append(quien("Asesora de posgrados", "asesora"));
     if (E.estudiando) {
       const p = C.formacion.find((f) => f.id === E.estudiando.id);
-      c.append(nodo("div", "personaje", "👩‍🎓 Asesora de posgrados"));
-      c.append(nodo("div", "globo", `Vas muy bien en tu ${p.nombre}. ${E.estudiando.restantes === 1 ? "Este es tu último año." : `Te faltan ${E.estudiando.restantes} años.`}`));
-      c.append(botonVolver("Seguir estudiando", () => { E.hechos.universidad = true; }));
+      c.append(globo(`Vas muy bien en tu ${p.nombre}. ${E.estudiando.restantes === 1 ? "Este es tu último año." : `Te faltan ${E.estudiando.restantes} años.`}`));
+      accionVolver("Seguir estudiando", () => { E.hechos.universidad = true; });
       return;
     }
-    c.append(nodo("div", "personaje", "👩‍🎓 Asesora de posgrados"));
-    c.append(nodo("div", "globo", "¿Quieres seguir formándote? Estudiar sube tu formación y te abre puertas en el escalafón, pero te quita tiempo."));
+    c.append(globo("¿Quieres seguir formándote? Estudiar sube tu formación y te abre puertas en el escalafón, pero te quita tiempo."));
     if (E.pj.titulo === "profesional" && !E.titulos.pedagogia) {
-      c.append(nodo("div", "alerta", "⚠️ Como no eres licenciada, debes acreditar un programa de pedagogía o un posgrado en educación antes de terminar el periodo de prueba (art. 12)."));
+      c.append(nodo("div", "alerta", "Como no eres licenciada, debes acreditar un programa de pedagogía o un posgrado en educación antes de terminar el periodo de prueba (art. 12)."));
     }
     const ops = nodo("div", "opciones");
     C.formacion.forEach((p) => {
@@ -412,23 +503,25 @@
       let bloqueo = null;
       if (p.requiere === "pregrado" && !tienePregrado()) bloqueo = "Necesitas primero una licenciatura";
       if (p.requiere === "maestria" && !E.titulos.maestria) bloqueo = "Necesitas primero una maestría";
-      const efectos = Object.entries(p.efectos).map(([k, d]) => `+${d} ${C.indicadores[k].icono}`).join(" ");
-      const costo = p.costoAnual ? " · cada año: " + Object.entries(p.costoAnual).map(([k, d]) => `${d} ${C.indicadores[k].icono}`).join(" ") : "";
-      const b = boton(`${p.nombre} — ${p.anios} año${p.anios > 1 ? "s" : ""} · al terminar: ${efectos}${costo}`, "btn-opcion", () => inscribir(p));
-      if (bloqueo) { b.disabled = true; b.textContent += ` (${bloqueo})`; }
+      const b = boton("", "btn-opcion btn-curso", () => inscribir(p));
+      b.append(con("span", "curso-nombre", p.nombre, " ", nodo("span", "chip", `${p.anios} año${p.anios > 1 ? "s" : ""}`)));
+      const det = con("span", "curso-detalle", "Al terminar: ", efectosCortos(p.efectos, true));
+      if (p.costoAnual) det.append(" · Cada año: ", efectosCortos(p.costoAnual));
+      b.append(det);
+      if (bloqueo) { b.disabled = true; b.append(nodo("small", "motivo", bloqueo)); }
       ops.append(b);
     });
     c.append(ops);
-    c.append(boton("Ahora no", "btn-secundario", cerrarPanel));
+    accion("Ahora no", cerrarPanel, "btn-secundario");
 
     function inscribir(p) {
       E.estudiando = { id: p.id, restantes: p.anios };
       E.hechos.universidad = true;
       registrar(`Empezó: ${p.nombre}.`);
       const c2 = limpiarCuerpo();
-      c2.append(nodo("div", "globo", `¡Inscrito en ${p.nombre}! Terminas en ${p.anios} año${p.anios > 1 ? "s" : ""}.`));
+      c2.append(resultadoCaja(true, `¡Inscrit${a()} en ${p.nombre}!`, `Terminas en ${p.anios} año${p.anios > 1 ? "s" : ""}.`));
       c2.append(tarjetaArticulo(p.articulo, p.explicacion));
-      c2.append(botonVolver());
+      accionVolver();
     }
   }
 
@@ -436,16 +529,17 @@
 
   function secretaria() {
     const P = C.progresion;
-    const c = abrirPanel("🏛️", "Secretaría de Educación", "Progresión profesional · Arts. 10, 20–23, 35–36");
-    c.append(nodo("div", "personaje", "👩‍💼 Oficina de escalafón"));
-    c.append(nodo("div", "globo", "Aquí se tramitan las evaluaciones de competencias (para ascender o reubicarse) y los concursos para cargos directivos."));
+    const c = abrirPanel("secretaria", "Secretaría de Educación", "Progresión profesional · Arts. 10, 20–23, 35–36");
+    c.append(quien("Oficina de escalafón", "funcionaria"));
+    c.append(globo("Aquí se tramitan las evaluaciones de competencias (para ascender o reubicarse) y los concursos para cargos directivos."));
     const ops = nodo("div", "opciones");
 
     // Evaluación de competencias
     let motivo = null;
-    if (E.laboral !== "carrera") motivo = "Primero debes estar inscrito en el escalafón";
+    if (E.laboral !== "carrera") motivo = "Primero debes estar inscrit" + a() + " en el escalafón";
     else if (E.aniosDesdeAscenso < P.competencias.aniosMinimos) motivo = `Necesitas ${P.competencias.aniosMinimos} años de servicio en tu nivel (llevas ${E.aniosDesdeAscenso})`;
-    const bComp = boton("📊 Evaluación de competencias (ascenso o reubicación)", "btn-opcion", competencias);
+    const bComp = boton("", "btn-opcion btn-curso", competencias);
+    bComp.append(con("span", "curso-nombre", ico("desempeno"), " Evaluación de competencias"), nodo("span", "curso-detalle", "Para ascender de grado o reubicarte de nivel"));
     if (motivo) { bComp.disabled = true; bComp.append(nodo("small", "motivo", motivo)); }
     ops.append(bComp);
 
@@ -453,70 +547,73 @@
     P.directivos.forEach((d) => {
       if (E.cargo === d.cargo || (E.cargo === "Rector")) return;
       let m = null;
-      if (E.laboral !== "carrera") m = "Primero debes estar inscrito en el escalafón";
+      if (E.laboral !== "carrera") m = "Primero debes estar inscrit" + a() + " en el escalafón";
       else if (E.aniosExp < d.aniosExperiencia) m = `Necesitas ${d.aniosExperiencia} años de experiencia (llevas ${E.aniosExp})`;
-      const b = boton(`🏅 Concurso para ${d.cargo.toLowerCase()}`, "btn-opcion", () => directivo(d));
+      const b = boton("", "btn-opcion btn-curso", () => directivo(d));
+      b.append(con("span", "curso-nombre", ico("rectoria"), ` Concurso para ${d.cargo.toLowerCase()}`), nodo("span", "curso-detalle", `Mínimo ${d.minimo} puntos · ${d.aniosExperiencia} años de experiencia`));
       if (m) { b.disabled = true; b.append(nodo("small", "motivo", m)); }
       ops.append(b);
     });
     c.append(ops);
-    c.append(boton("Volver al mapa", "btn-secundario", cerrarPanel));
+    accion("Volver al mapa", cerrarPanel, "btn-secundario");
   }
 
   function competencias() {
     const K = C.progresion.competencias;
     const base = Math.round(Object.entries(K.pesos).reduce((s, [k, w]) => s + E.ind[k] * w, 0));
-    const q = azar(C.preguntas);
+    const q = Comun.sacar("estatuto", usadas("estatuto"));
     let c = limpiarCuerpo();
-    c.append(nodo("div", "personaje", "📊 Evaluación de competencias"));
-    c.append(nodo("div", "globo", `Tu base por formación, desempeño y experiencia es ${base}. Responde esta pregunta: si aciertas sumas 10 puntos, si fallas pierdes 10.`));
-    c.append(nodo("div", "enunciado pregunta", q.texto));
+    c.append(quien("Evaluación de competencias", "funcionaria"));
+    c.append(globo(`Tu base por formación, desempeño y experiencia es ${base}. Responde esta pregunta: si aciertas sumas 10 puntos, si fallas pierdes 10.`));
+    if (!q) { c.append(globo("Todavía no hay preguntas en el banco \"estatuto\".")); accionVolver(); return; }
+    c.append(nodo("div", "enunciado", q.texto));
     c.append(nodo("div", "elige", "Elige una respuesta"));
-    const ops = nodo("div", "opciones respuestas");
-    q.opciones.forEach((o, i) => ops.append(boton(o, "btn-opcion", () => {
-      const acierto = i === q.correcta;
+    c.append(Comun.opciones(q, (o) => {
+      const acierto = Comun.esCorrecta(o);
       const total = lim(base + (acierto ? 10 : -10));
       E.hechos.secretaria = true;
       c = limpiarCuerpo();
-      c.append(nodo("div", "globo", (acierto ? "✅ ¡Correcto! " : `❌ La respuesta era: ${q.opciones[q.correcta]}. `) + `Resultado: ${total}%.`));
-      c.append(tarjetaArticulo(q.articulo, q.explicacion));
+      c.append(resultadoCaja(acierto, acierto ? "¡Correcto!" : "Incorrecto", `Resultado: ${total}%`));
+      const cor = Comun.correctaDe(q);
+      if (!acierto && cor) c.append(con("p", "respuesta-elegida", "La respuesta correcta era: ", con("b", "", cor.texto)));
+      if (q.articulo || q.explicacion) c.append(tarjetaArticulo(q.articulo, q.explicacion));
       if (total > K.umbral) {
-        c.append(caja("oportunidad vacante", `¡Más de ${K.umbral}%! Eres candidato a ascenso o reubicación`));
+        c.append(caja("oportunidad vacante", `¡Más de ${K.umbral}%! Eres candidat${a()} a ascenso o reubicación`, "check"));
         c.append(tarjetaArticulo(K.articulo, K.explicacion));
         const niveles = ["A", "B", "C", "D"];
         const sigNivel = niveles[niveles.indexOf(E.nivel) + 1];
         const gradoNuevo = gradoPorTitulo();
-        const ops2 = nodo("div", "opciones");
         if (gradoNuevo > E.grado) {
-          ops2.append(boton(`⬆️ Ascender al Grado ${gradoNuevo} (Nivel A)`, "btn-opcion", () => {
+          accion(`Ascender al Grado ${gradoNuevo} (Nivel A)`, () => {
             E.grado = gradoNuevo; E.nivel = "A"; E.aniosDesdeAscenso = 0;
             registrar(`Ascendió al Grado ${gradoNuevo}.`);
             fin(`¡Ascendiste al Grado ${gradoNuevo}! Tu sueldo sube según tu nuevo título.`, "Art. 21 · Ascenso", "El ascenso es pasar de un grado a otro: exige cumplir los requisitos del grado, superar las evaluaciones y que haya disponibilidad presupuestal.");
-          }));
+          });
         }
         if (sigNivel) {
-          ops2.append(boton(`➡️ Reubicarme en el Nivel ${sigNivel} del Grado ${E.grado}`, "btn-opcion", () => {
+          accion(`Reubicarme en el Nivel ${sigNivel} del Grado ${E.grado}`, () => {
             E.nivel = sigNivel; E.aniosDesdeAscenso = 0;
             registrar(`Reubicación salarial al Nivel ${sigNivel}.`);
             fin(`¡Reubicación al Nivel ${sigNivel}! Tu salario sube dentro del mismo grado.`, "Art. 23 · Inscripción y ascenso", "La reubicación de nivel se da cuando la entidad convoca la evaluación de competencias y el docente obtiene el puntaje del art. 36, hasta donde alcance el presupuesto.");
-          }));
+          }, gradoNuevo > E.grado ? "btn-secundario" : "btn-principal");
         }
-        if (!ops2.children.length) ops2.append(nodo("p", "suave", "Ya estás en el nivel más alto de tu grado y no tienes un título nuevo para ascender."));
-        c.append(ops2);
-        if (!sigNivel && gradoNuevo <= E.grado) c.append(botonVolver());
+        if (!sigNivel && gradoNuevo <= E.grado) {
+          c.append(nodo("p", "suave", "Ya estás en el nivel más alto de tu grado y no tienes un título nuevo para ascender."));
+          accionVolver();
+        }
       } else {
-        c.append(caja("oportunidad reemplazo", `No superaste el ${K.umbral}%. Puedes intentarlo otro año.`));
+        c.append(caja("oportunidad reemplazo", `No superaste el ${K.umbral}%. Puedes intentarlo otro año.`, "reloj"));
         c.append(tarjetaArticulo(K.articulo, K.explicacion));
-        c.append(botonVolver());
+        accionVolver();
       }
-    })));
-    c.append(ops);
+    }));
+    const ap = Comun.avisoPrueba(); if (ap) c.append(ap);
 
     function fin(texto, art, exp) {
       const c3 = limpiarCuerpo();
-      c3.append(nodo("div", "globo", texto));
+      c3.append(resultadoCaja(true, texto));
       c3.append(tarjetaArticulo(art, exp));
-      c3.append(botonVolver());
+      accionVolver();
       actualizarHud();
     }
   }
@@ -525,23 +622,23 @@
     const puntaje = Math.round((E.ind.desempeno + E.ind.formacion + E.ind.popularidad + E.ind.experiencia) / 4);
     E.hechos.secretaria = true;
     const c = limpiarCuerpo();
-    c.append(nodo("div", "personaje", `🏅 Concurso para ${d.cargo.toLowerCase()}`));
+    c.append(quien(`Concurso para ${d.cargo.toLowerCase()}`, "funcionaria"));
     const tabla = nodo("div", "tabla");
-    IND.forEach((k) => tabla.append(filaTabla(`${C.indicadores[k].icono} ${C.indicadores[k].nombre}`, String(E.ind[k]))));
+    IND.forEach((k) => tabla.append(filaTabla(C.indicadores[k].nombre, String(E.ind[k]), null, false, k)));
     tabla.append(filaTabla("Promedio (puntaje del concurso)", String(puntaje), null, true));
     tabla.append(filaTabla("Mínimo para ganar", String(d.minimo)));
     c.append(tabla);
     if (puntaje >= d.minimo) {
       E.cargo = d.cargo;
-      registrar(`Ganó el concurso y fue nombrado ${d.cargo.toLowerCase()}.`);
-      c.append(caja("oportunidad vacante", `¡Nombrado ${d.cargo}!`));
+      registrar(`Ganó el concurso y fue nombrad${a()} ${d.cargo.toLowerCase()}.`);
+      c.append(caja("oportunidad vacante", `¡Nombrad${a()} ${d.cargo}!`, "check"));
       c.append(chipsEfectos(aplicar(d.efectos)));
       c.append(tarjetaArticulo("Art. 22 · Escalafón de directivos", "Quien pasa a un cargo directivo conserva su grado en el escalafón y recibe una mayor remuneración."));
     } else {
-      c.append(caja("oportunidad reemplazo", "No alcanzaste el puntaje esta vez."));
+      c.append(caja("oportunidad reemplazo", "No alcanzaste el puntaje esta vez.", "cruz"));
     }
     c.append(tarjetaArticulo(d.articulo, d.explicacion));
-    c.append(botonVolver());
+    accionVolver();
   }
 
   /* ------------------------- rectoría: evaluación ------------------------- */
@@ -550,12 +647,12 @@
     const A = C.evaluacionAnual;
     const ev = evaluacion();
     const r = ev.total;
-    const c = abrirPanel("🗂️", "Rectoría", `Evaluación del año ${E.anio}`);
+    const c = abrirPanel("rectoria", "Rectoría", `Evaluación del año ${E.anio}`);
     const esPrueba = E.laboral === "prueba";
-    c.append(nodo("div", "personaje", E.cargo === "Rector" ? "🏛️ Secretaría (evalúa al rector)" : "🧔 Rector"));
-    c.append(nodo("div", "globo", esPrueba ? "Terminó el año escolar: llegó la evaluación de tu periodo de prueba." : "Terminó el año escolar: llegó tu evaluación anual de desempeño."));
+    c.append(quien(E.cargo === "Rector" ? "Secretaría (evalúa al rector)" : "Rector", E.cargo === "Rector" ? "funcionaria" : "rector"));
+    c.append(globo(esPrueba ? "Terminó el año escolar: llegó la evaluación de tu periodo de prueba." : "Terminó el año escolar: llegó tu evaluación anual de desempeño."));
     const tabla = nodo("div", "tabla");
-    ev.partes.forEach(({ k, w, v }) => tabla.append(filaTabla(`${C.indicadores[k].icono} ${C.indicadores[k].nombre}: ${E.ind[k]} × ${Math.round(w * 100)}%`, v.toFixed(1))));
+    ev.partes.forEach(({ k, w, v }) => tabla.append(filaTabla(`${C.indicadores[k].nombre}: ${E.ind[k]} × ${Math.round(w * 100)}%`, v.toFixed(1), null, false, k)));
     tabla.append(filaTabla("Resultado", r + "%", null, true));
     c.append(tabla);
 
@@ -563,15 +660,15 @@
     if (esPrueba) {
       if (r >= A.minimo && (E.pj.titulo !== "profesional" || pedagogiaAcreditada())) {
         const g = gradoPorTitulo();
-        msg = `¡Aprobaste el periodo de prueba! Quedas inscrito en el escalafón: Grado ${g}, Nivel A.`;
+        msg = `¡Aprobaste el periodo de prueba! Quedas inscrit${a()} en el escalafón: Grado ${g}, Nivel A.`;
         art = "Art. 31 · Evaluación del periodo de prueba";
         exp = "Con 60% o más, el docente queda inscrito en el escalafón en el grado que corresponde a sus títulos (art. 21), empezando en el Nivel A.";
       } else if (r >= A.minimo) {
-        msg = "Aprobaste la evaluación, pero no acreditaste un programa de pedagogía ni un posgrado en educación. Quedas separado del servicio; puedes volver a concursar.";
+        msg = `Aprobaste la evaluación, pero no acreditaste un programa de pedagogía ni un posgrado en educación. Quedas separad${a()} del servicio; puedes volver a concursar.`;
         art = "Art. 12, parágrafo 1"; clase = "reemplazo";
         exp = "Los profesionales no licenciados deben acreditar, al terminar el periodo de prueba, que cursan o terminaron un posgrado en educación o un programa de pedagogía.";
       } else {
-        msg = "No alcanzaste el 60%. Quedas separado del servicio, pero puedes presentarte al siguiente concurso.";
+        msg = `No alcanzaste el 60%. Quedas separad${a()} del servicio, pero puedes presentarte al siguiente concurso.`;
         art = "Arts. 12 y 31 · Periodo de prueba";
         exp = "Quien no supera el periodo de prueba sale del servicio y puede volver a concursar en una nueva convocatoria.";
       }
@@ -583,11 +680,11 @@
       } else if (E.evalBajas + 1 >= 2) {
         msg = E.cargo !== "Docente"
           ? "Segundo año seguido por debajo de 60%. Como venías de la docencia, regresas a un cargo docente."
-          : "Segundo año seguido por debajo de 60%. Quedas excluido del escalafón y sales del servicio.";
+          : `Segundo año seguido por debajo de 60%. Quedas excluid${a()} del escalafón y sales del servicio.`;
         art = "Art. 36 · Resultados y consecuencias";
         exp = "Dos evaluaciones anuales consecutivas por debajo de 60% llevan a la exclusión del escalafón y al retiro del servicio; un directivo que venía de la docencia regresa a la docencia.";
       } else {
-        msg = "⚠️ Tu evaluación quedó por debajo de 60%. Si se repite el próximo año, quedarías fuera del escalafón.";
+        msg = "Tu evaluación quedó por debajo de 60%. Si se repite el próximo año, quedarías fuera del escalafón.";
         art = "Art. 36 · Resultados y consecuencias";
         exp = "Dos evaluaciones anuales consecutivas por debajo de 60% llevan a la exclusión del escalafón.";
       }
@@ -596,9 +693,9 @@
       art = "Art. 13 · Nombramientos provisionales";
       exp = "Para ocupar un cargo en propiedad y tener derechos de carrera, hay que ganar el concurso y aprobar la evaluación del periodo de prueba.";
     }
-    c.append(caja("oportunidad " + clase, msg));
+    c.append(caja("oportunidad " + clase, msg, clase === "vacante" ? "check" : "cruz"));
     c.append(tarjetaArticulo(art, exp));
-    c.append(boton(E.anio >= C.aniosDeJuego ? "Ver el final de mi carrera" : "Pasar al siguiente año", "btn-principal", () => cerrarAnio(r)));
+    accion(E.anio >= C.aniosDeJuego ? "Ver el final de mi carrera" : "Pasar al siguiente año", () => cerrarAnio(r));
   }
 
   function cerrarAnio(r) {
@@ -609,7 +706,7 @@
         E.laboral = "carrera"; E.grado = gradoPorTitulo(); E.nivel = "A"; E.aniosDesdeAscenso = 0; E.evalBajas = 0;
         registrar(`Aprobó el periodo de prueba (${r}%) y entró al escalafón en el Grado ${E.grado}.`);
       } else {
-        E.laboral = "aspirante"; E.oportunidad = null;
+        E.laboral = "aspirante"; E.oportunidad = null; E.sinPlaza = true;
         registrar(`No superó el periodo de prueba (${r}%) y salió del servicio.`);
       }
     } else if (E.laboral === "carrera") {
@@ -635,7 +732,7 @@
         E.titulos[p.otorga] = true;
         aplicar(p.efectos);
         registrar(`Terminó: ${p.nombre}.`);
-        setTimeout(() => aviso(`🎓 ¡Terminaste tu ${p.nombre}!`), 900);
+        setTimeout(() => aviso(`¡Terminaste tu ${p.nombre}!`, "formacion"), 900);
         E.estudiando = null;
       }
     }
@@ -651,52 +748,123 @@
     if (E.laboral === "excluido" || E.anio > C.aniosDeJuego) { E.fin = true; cerrarPanel(); pantallaFinal(); return; }
     if (E.laboral !== "aspirante" && pueblo) pueblo.generarCartas(2);
     cerrarPanel();
-    aviso(`📅 Comienza el año ${E.anio}`);
+    aviso(`Comienza el año ${E.anio}`, "reloj");
   }
 
   /* ============================== pantallas ============================== */
 
+  const PANTALLAS = ["menu", "indicacion", "seleccion", "intro-concurso", "convocatoria", "final"];
   function mostrar(id) {
-    ["menu", "seleccion", "final"].forEach((p) => $(p).classList.toggle("oculto", p !== id));
+    PANTALLAS.forEach((p) => $(p).classList.toggle("oculto", p !== id));
+    if (id) $(id).scrollTop = 0;
   }
 
   function menu() {
     $("titulo").textContent = C.titulo;
     $("subtitulo").textContent = C.subtitulo;
     $("creditos").textContent = C.creditos;
-    $("btn-individual").onclick = seleccion;
+    const esc = $("menu-escena");
+    if (!esc.firstChild) esc.append(Pixel.escenaMenu(C.personajes, 3));
+    $("btn-individual").onclick = indicacion;
     mostrar("menu");
   }
 
+  // 1. Indicaciones (texto del grupo)
+  function indicacion() {
+    $("ind-texto").textContent = C.introduccion.indicacion;
+    const lista = $("ind-lista");
+    lista.innerHTML = "";
+    [
+      ["colegio", "Toca el mapa para caminar y toca un edificio para entrar."],
+      ["popularidad", "La flecha amarilla marca tu objetivo; la estrella, algo opcional."],
+      ["carta", "Cada año aparecen cartas con situaciones inesperadas."],
+      ["rectoria", "Al final de cada año, el rector te evalúa: necesitas 60%."],
+      ["articulo", "Cada decisión te enseña un artículo del estatuto."]
+    ].forEach(([i, t]) => lista.append(con("li", "", ico(i), nodo("span", "", t))));
+    $("btn-ind-seguir").onclick = seleccion;
+    $("btn-ind-volver").onclick = menu;
+    mostrar("indicacion");
+  }
+
+  // 2. Escoge un personaje (con la explicación de cada indicador al lado de su barra)
   function seleccion() {
+    $("sel-titulo").textContent = C.introduccion.seleccion || "Escoge un personaje";
     const cont = $("lista-personajes");
     cont.innerHTML = "";
+    elegido = null;
+    const seguir = $("btn-sel-seguir");
+    seguir.disabled = true;
+    seguir.textContent = "Toca un personaje";
     C.personajes.forEach((pj) => {
       const t = nodo("button", "tarjeta-personaje");
-      const cab = nodo("div", "pj-cabecera");
-      cab.append(nodo("span", "pj-icono", pj.icono));
-      const nom = nodo("div");
-      nom.append(nodo("div", "pj-nombre", pj.nombre), nodo("div", "pj-perfil", pj.perfil));
-      cab.append(nom);
-      t.append(cab, nodo("p", "pj-desc", pj.descripcion));
+      t.dataset.id = pj.id;
+      const ret = nodo("div", "pj-retrato");
+      ret.append(Pixel.retrato(pj, 3));
+      t.append(con("div", "pj-cabecera", ret, con("div", "", nodo("div", "pj-nombre", pj.nombre), nodo("div", "pj-perfil", pj.perfil))));
+      t.append(nodo("p", "pj-desc", pj.descripcion));
       const inds = nodo("div", "pj-inds");
       IND.forEach((k) => {
-        const f = nodo("div", "ind");
-        f.append(nodo("span", "ind-icono", C.indicadores[k].icono));
-        const b = nodo("div", "barra");
+        const i = C.indicadores[k];
+        const barra = nodo("div", "barra");
         const r = nodo("div", "barra-relleno ind-" + k);
         r.style.width = pj.indicadores[k] + "%";
-        b.append(r);
-        f.append(b, nodo("span", "ind-valor", pj.indicadores[k]));
-        inds.append(f);
+        barra.append(r);
+        inds.append(con("div", "pj-ind",
+          con("div", "pj-ind-cab", ico(k), nodo("span", "pj-ind-nombre", i.nombre), barra, nodo("span", "ind-valor", pj.indicadores[k])),
+          nodo("div", "pj-ind-desc", i.descripcion)));
       });
       t.append(inds);
       if (pj.nota) t.append(nodo("p", "pj-nota", pj.nota));
-      t.onclick = () => empezar(pj);
+      t.onclick = () => {
+        elegido = pj;
+        cont.querySelectorAll(".tarjeta-personaje").forEach((x) => x.classList.toggle("elegido", x === t));
+        seguir.disabled = false;
+        seguir.textContent = "Continuar con " + pj.nombre;
+      };
       cont.append(t);
     });
-    $("btn-volver-menu").onclick = menu;
+    seguir.onclick = () => { if (elegido) introConcurso(); };
+    $("btn-volver-menu").onclick = indicacion;
     mostrar("seleccion");
+  }
+
+  // 3. Panel del concurso (art. 7)
+  function introConcurso() {
+    const I = C.introduccion.concurso;
+    const esc = $("ic-escena");
+    esc.innerHTML = "";
+    esc.append(Pixel.retrato(elegido, 4), ico("secretaria", 5));
+    $("ic-titulo").textContent = I.titulo;
+    $("ic-texto").textContent = I.texto;
+    $("btn-ic-seguir").onclick = convocatoria;
+    mostrar("intro-concurso");
+  }
+
+  // 4. Convocatoria + Inscribirse → ¡Felicidades!
+  function convocatoria() {
+    const V = C.introduccion.convocatoria;
+    $("cv-titulo").textContent = V.titulo;
+    $("cv-emisor").textContent = V.emisor;
+    $("cv-texto").textContent = V.texto;
+    const res = $("cv-resultado");
+    res.classList.add("oculto");
+    res.innerHTML = "";
+    const ins = $("btn-inscribirse");
+    ins.textContent = V.boton || "Inscribirse";
+    ins.disabled = false;
+    ins.classList.remove("oculto");
+    $("btn-ir-mapa").classList.add("oculto");
+    ins.onclick = () => {
+      ins.disabled = true;
+      res.append(resultadoCaja(true, "¡Inscripción exitosa!", C.introduccion.inscrito));
+      res.classList.remove("oculto");
+      ins.classList.add("oculto");
+      const ir = $("btn-ir-mapa");
+      ir.classList.remove("oculto");
+      ir.onclick = () => empezar(elegido);
+      setTimeout(() => ir.scrollIntoView({ block: "end", behavior: "smooth" }), 50);
+    };
+    mostrar("convocatoria");
   }
 
   function empezar(pj) {
@@ -707,7 +875,7 @@
     jugando = true;
     if (pueblo) pueblo.reiniciar(pj);
     actualizarHud();
-    aviso("Toca el mapa para caminar 👆");
+    aviso("Toca el mapa para caminar. Ve a la Secretaría.", "secretaria");
   }
 
   function puntajeCarrera() {
@@ -724,22 +892,26 @@
     jugando = false;
     const p = puntajeCarrera();
     const excluido = E.laboral === "excluido";
-    $("fin-icono").textContent = excluido ? "📚" : E.cargo === "Rector" ? "🏆" : E.laboral === "carrera" ? "🎉" : "🧭";
+    const fi = $("fin-icono");
+    fi.innerHTML = "";
+    fi.append(Pixel.retrato(E.pj, 4), ico(excluido ? "cruz" : E.cargo === "Rector" ? "popularidad" : E.laboral === "carrera" ? "check" : "proceso", 5));
     $("fin-titulo").textContent = `${E.pj.nombre}: ${textoSituacion()}`;
     $("fin-texto").textContent = excluido
       ? "Tu carrera terminó antes de tiempo por dos evaluaciones insatisfactorias seguidas."
       : `Terminaste ${C.aniosDeJuego} años de juego con ${E.aniosExp} años de experiencia. Puntaje de carrera: ${p}.`;
     const inds = $("fin-indicadores");
     inds.innerHTML = "";
-    IND.forEach((k) => inds.append(nodo("li", "", `${C.indicadores[k].icono} ${C.indicadores[k].nombre}: ${E.ind[k]}`)));
+    IND.forEach((k) => inds.append(con("li", "", ico(k), `${C.indicadores[k].nombre}: ${E.ind[k]}`)));
     const hist = $("fin-historial");
     hist.innerHTML = "";
     E.historial.forEach((h) => hist.append(nodo("li", "", h)));
     const lista = $("fin-articulos");
     lista.innerHTML = "";
-    E.articulos.forEach((a) => lista.append(nodo("li", "", a)));
+    if (!E.articulos.length) lista.append(nodo("li", "", "Ninguno todavía"));
+    E.articulos.forEach((ar) => lista.append(con("li", "", ico("articulo"), ar)));
     $("btn-reiniciar").onclick = () => location.reload();
     $("hud").classList.add("oculto");
+    if (pueblo && pueblo.flecha) pueblo.flecha.setVisible(false);
     mostrar("final");
   }
 
@@ -750,47 +922,23 @@
 
     create() {
       pueblo = this;
-      Graficos.crearTexturas(this);
+      const m = Graficos.construirMapa(this);
+      this.caminable = m.caminable;
+      this.dibujos = m.dibujos;
 
-      // Bosque decorativo alrededor del mapa, para pantallas más anchas o altas que el pueblo
-      const Wm = MAPA.filas[0].length * T, Hm = MAPA.filas.length * T, B = 12 * T;
-      this.add.tileSprite(-B, -B, Wm + 2 * B, B, "arbol").setOrigin(0).setDepth(0);
-      this.add.tileSprite(-B, Hm, Wm + 2 * B, B, "arbol").setOrigin(0).setDepth(0);
-      this.add.tileSprite(-B, 0, B, Hm, "arbol").setOrigin(0).setDepth(0);
-      this.add.tileSprite(Wm, 0, B, Hm, "arbol").setOrigin(0).setDepth(0);
-      this.caminable = [];
-      MAPA.filas.forEach((fila, y) => {
-        this.caminable[y] = [];
-        [...fila].forEach((ch, x) => {
-          let clave = (x * 7 + y * 13) % 3 === 0 ? "pasto2" : "pasto";
-          if (ch === ".") clave = "camino";
-          if (ch === "f") clave = "flores";
-          if (ch === "w") clave = "agua";
-          if (ch === "T") clave = "arbol";
-          this.add.image(x * T, y * T, clave).setOrigin(0).setDepth(0);
-          this.caminable[y][x] = ".gf".includes(ch);
-        });
-      });
-      Graficos.dibujarFuente(this);
-      this.dibujos = {};
-      MAPA.edificios.forEach((ed) => { this.dibujos[ed.id] = Graficos.dibujarEdificio(this, ed); });
-
-      this.crearAnimaciones();
       this.pj = C.personajes[0].id;
       const ini = MAPA.inicio;
       this.casilla = { x: ini.x, y: ini.y };
       this.dir = "arriba";
-      this.jugador = this.add.sprite(this.pxX(ini.x), this.pxY(ini.y), this.pj + "-arriba1").setOrigin(0.5, 1).setDepth(10);
-      this.sombra = this.add.ellipse(this.jugador.x, this.jugador.y - 2, 18, 6, 0x000000, 0.25).setDepth(9);
+      this.sombra = this.add.image(this.pxX(ini.x), this.pxY(ini.y), "sombra").setOrigin(0.5, 0.5);
+      this.jugador = this.add.sprite(this.pxX(ini.x), this.pxY(ini.y), this.pj + "-arriba1").setOrigin(0.5, 1);
       this.camino = [];
       this.moviendo = false;
 
-      this.flecha = this.add.image(0, 0, "flecha").setDepth(20).setVisible(false);
+      this.flecha = this.add.image(0, 0, "flecha").setDepth(100000).setVisible(false);
       this.rebote = { v: 0 };
       this.tweens.add({ targets: this.rebote, v: -7, duration: 420, yoyo: true, repeat: -1, ease: "Sine.inOut" });
 
-      const W = MAPA.filas[0].length * T, H = MAPA.filas.length * T;
-      this.cameras.main.setBounds(0, 0, W, H);
       this.cameras.main.startFollow(this.jugador, true, 0.15, 0.15);
       this.ajustarZoom();
       this.scale.on("resize", () => this.ajustarZoom());
@@ -814,10 +962,13 @@
       const w = this.scale.width, h = this.scale.height;
       const W = MAPA.filas[0].length * T, H = MAPA.filas.length * T;
       const hud = document.getElementById("hud");
-      const altoHud = hud && hud.offsetHeight ? hud.offsetHeight : 130;
+      const visible = hud && !hud.classList.contains("oculto");
+      const altoHud = visible && hud.offsetHeight ? hud.offsetHeight : 130;
       // Que se vean unas 11 columnas y al menos 8 filas por debajo de la barra superior
       let z = Math.min(w / (11 * T), (h - altoHud) / (8 * T));
-      z = Phaser.Math.Clamp(z, 0.7, 2.5);
+      // Zoom en pasos de 0,5 para que cada píxel del dibujo mida lo mismo
+      z = z >= 1 ? Math.floor(z * 2) / 2 : z;
+      z = Phaser.Math.Clamp(z, 0.7, 3);
       const cam = this.cameras.main;
       cam.setZoom(z);
       const vw = w / z, vh = h / z;
@@ -830,17 +981,7 @@
       cam.setBounds(bx, by, bw, bh);
       cam.setFollowOffset(0, altoHud / 2 / z);
       // Los avisos aparecen justo debajo de la barra superior
-      document.documentElement.style.setProperty("--alto-hud", (hud && !hud.classList.contains("oculto") ? altoHud : 0) + "px");
-    }
-
-    crearAnimaciones() {
-      C.personajes.forEach((pj) => {
-        ["abajo", "arriba", "lado"].forEach((d) => {
-          const k = pj.id + "-caminar-" + d;
-          if (this.anims.exists(k)) return;
-          this.anims.create({ key: k, frames: [{ key: pj.id + "-" + d + "1" }, { key: pj.id + "-" + d + "2" }], frameRate: 8, repeat: -1 });
-        });
-      });
+      document.documentElement.style.setProperty("--alto-hud", (visible ? altoHud : 0) + "px");
     }
 
     edificioEn(x, y) { return MAPA.edificios.find((e) => x >= e.x && x < e.x + e.w && y >= e.y && y < e.y + e.h); }
@@ -879,14 +1020,16 @@
         if (ch !== "g" || y <= 1) return; // la fila de arriba queda detrás de los edificios
         if (puertas.some((p) => Math.abs(p.x - x) + Math.abs(p.y - y) < 3)) return;
         if (Math.abs(this.casilla.x - x) + Math.abs(this.casilla.y - y) < 4) return;
+        if (!this.buscarRuta(this.casilla, { x, y })) return;
         libres.push({ x, y });
       }));
       for (let i = 0; i < n && libres.length; i++) {
         const pos = libres.splice(Math.floor(Math.random() * libres.length), 1)[0];
-        const item = siguienteDe(C.cartas, E.usadasCartas);
-        const sprite = this.add.image(this.pxX(pos.x), pos.y * T + T / 2, "carta").setDepth(8);
+        const item = Comun.sacar("cartas", usadas("cartas"));
+        const base = pos.y * T + T;
+        const sprite = this.add.image(this.pxX(pos.x), pos.y * T + T / 2 + 4, "carta").setDepth(base);
         this.tweens.add({ targets: sprite, y: sprite.y - 5, duration: 600, yoyo: true, repeat: -1, ease: "Sine.inOut", delay: i * 200 });
-        E.cartas.push({ id: item.id, x: pos.x, y: pos.y, sprite, tomada: false });
+        E.cartas.push({ item, x: pos.x, y: pos.y, sprite, tomada: false });
       }
       this.actualizarMarcadores();
     }
@@ -912,8 +1055,8 @@
     }
 
     marca(x, y, ok) {
-      const c = this.add.circle(x, y, 9, ok ? 0xffffff : 0xe87a6a, 0.6).setDepth(8);
-      this.tweens.add({ targets: c, scale: 0.2, alpha: 0, duration: 450, onComplete: () => c.destroy() });
+      const c = this.add.image(x, y, ok ? "marca-ok" : "marca-no").setDepth(y + 1);
+      this.tweens.add({ targets: c, scale: 0.3, alpha: 0, duration: 450, onComplete: () => c.destroy() });
     }
 
     detener() {
@@ -939,36 +1082,35 @@
       this.jugador.anims.play(this.pj + "-caminar-" + this.dir, true);
       this.casilla = sig;
       this.moviendo = true;
-      this.tweens.add({ targets: this.jugador, x: this.pxX(sig.x), y: this.pxY(sig.y), duration: 150, onComplete: () => this.paso() });
+      this.tweens.add({ targets: this.jugador, x: this.pxX(sig.x), y: this.pxY(sig.y), duration: 170, onComplete: () => this.paso() });
     }
 
     actualizarMarcadores() {
       if (!this.dibujos) return;
       MAPA.edificios.forEach((ed) => {
         const d = this.dibujos[ed.id];
-        if (!E) { d.insignia.setText(""); return; }
-        const a = acceso(ed.id);
-        if (a.estado === "hecho") d.insignia.setText("✓").setColor("#7bc98f");
-        else if (a.estado === "bloqueado") d.insignia.setText("🔒").setColor("#ffffff");
-        else if (a.estado === "opcional") d.insignia.setText("★").setColor("#f2c14e");
-        else d.insignia.setText("");
+        if (!E || !jugando) { Graficos.marcar(d, null); return; }
+        const ac = acceso(ed.id);
+        Graficos.marcar(d, ac.estado === "hecho" ? "check" : ac.estado === "bloqueado" ? "candado" : ac.estado === "opcional" ? "estrella" : null);
       });
       const obj = E ? objetivo() : {};
       let destino = null;
       if (obj.id) {
         const ed = MAPA.edificios.find((e) => e.id === obj.id);
-        destino = { x: this.pxX(ed.puerta.x), y: (ed.y + ed.h) * T - 44 };
+        destino = { x: this.pxX(ed.puerta.x), y: (ed.y + ed.h) * T - 14 };
       } else if (obj.carta) {
         const libres = E.cartas.filter((c) => !c.tomada);
-        libres.sort((a, b) => (Math.abs(a.x - this.casilla.x) + Math.abs(a.y - this.casilla.y)) - (Math.abs(b.x - this.casilla.x) + Math.abs(b.y - this.casilla.y)));
-        if (libres[0]) destino = { x: this.pxX(libres[0].x), y: libres[0].y * T - 14 };
+        libres.sort((p, q) => (Math.abs(p.x - this.casilla.x) + Math.abs(p.y - this.casilla.y)) - (Math.abs(q.x - this.casilla.x) + Math.abs(q.y - this.casilla.y)));
+        if (libres[0]) destino = { x: this.pxX(libres[0].x), y: libres[0].y * T - 10 };
       }
       this.flechaBase = destino;
       this.flecha.setVisible(!!destino && jugando);
     }
 
     update() {
-      this.sombra.setPosition(this.jugador.x, this.jugador.y - 2);
+      // profundidad según la altura en el mapa (pasa por delante o por detrás de las cosas)
+      this.jugador.setDepth(this.jugador.y);
+      this.sombra.setPosition(this.jugador.x, this.jugador.y - 1).setDepth(this.jugador.y - 2);
       if (this.flechaBase) this.flecha.setPosition(this.flechaBase.x, this.flechaBase.y + this.rebote.v);
       if (!jugando || interiorAbierto || this.moviendo) return;
       const k = this.teclas;
@@ -999,12 +1141,13 @@
   window.juego = new Phaser.Game({
     type: Phaser.AUTO,
     parent: "juego",
-    backgroundColor: "#1d2b2a",
+    backgroundColor: "#17241f",
     pixelArt: true,
+    roundPixels: true,
     scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
     scene: [Pueblo]
   });
 
   // Para pruebas automáticas
-  window.__juego = { estado: () => E, entrar: (id) => entrar(id) };
+  window.__juego = { estado: () => E, entrar: (id) => entrar(id), pueblo: () => pueblo };
 })();

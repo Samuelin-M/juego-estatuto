@@ -2,11 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#1d2b2a">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#17241f">
+  <link rel="preload" href="lib/fuentes/jersey-10-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <title>Carrera Docente — Multijugador</title>
-  <link rel="stylesheet" href="estilos.css?v=20261115f">
-  <link rel="stylesheet" href="multijugador.css?v=20261115f">
+  <link rel="stylesheet" href="estilos.css?v=20261116a">
+  <link rel="stylesheet" href="multijugador.css?v=20261116a">
 </head>
 <body class="modo-mapa">
   <div id="juego"></div>
@@ -14,13 +15,13 @@
   <!-- Barra superior durante la partida -->
   <header id="hud" class="oculto">
     <div class="hud-cabecera">
-      <span id="hud-avatar">🧑‍🏫</span>
+      <span id="hud-avatar"></span>
       <div id="hud-objetivo">Objetivo</div>
     </div>
     <div class="hud-fila chips">
-      <span class="chip chip-puntos" id="hud-puntos">⭐ 0</span>
-      <span class="chip" id="hud-proceso">📋 1/6</span>
-      <span class="chip" id="hud-reloj">⏱ 0:00</span>
+      <span class="chip chip-puntos" id="hud-puntos"><img class="ico-px" data-ico="puntos" alt=""><span id="hud-puntos-t">0 pts</span></span>
+      <span class="chip" id="hud-proceso"><img class="ico-px" data-ico="proceso" alt=""><span id="hud-proceso-t">1/6</span></span>
+      <span class="chip" id="hud-reloj"><img class="ico-px" data-ico="reloj" alt=""><span id="hud-reloj-t">0:00</span></span>
     </div>
     <div id="hud-ranking" class="ranking"></div>
   </header>
@@ -31,13 +32,14 @@
   <section id="interior" class="oculto">
     <div class="int-caja">
       <div class="int-cabecera">
-        <span id="int-icono">🏛️</span>
+        <span id="int-icono"></span>
         <div>
           <div id="int-nombre">Edificio</div>
           <div id="int-arts"></div>
         </div>
       </div>
       <div id="int-cuerpo"></div>
+      <div id="int-pie"></div>
     </div>
   </section>
 
@@ -46,14 +48,16 @@
     <div class="pantalla-caja" id="mj-caja"></div>
   </section>
 
-  <script src="lib/phaser.min.js?v=20261115f"></script>
-  <script src="lib/qrcode.js?v=20261115f"></script>
-  <script src="lib/supabase.min.js?v=20261115f"></script>
-  <script src="config.js?v=20261115f"></script>
-  <script src="mapa.js?v=20261115f"></script>
-  <script src="contenido.js?v=20261115f"></script>
-  <script src="sprites.js?v=20261115f"></script>
-  <script src="red.js?v=20261115f"></script>
-  <script src="multijugador.js?v=20261115f"></script>
+  <script src="lib/phaser.min.js?v=20261116a"></script>
+  <script src="lib/qrcode.js?v=20261116a"></script>
+  <script src="lib/supabase.min.js?v=20261116a"></script>
+  <script src="config.js?v=20261116a"></script>
+  <script src="mapa.js?v=20261116a"></script>
+  <script src="contenido.js?v=20261116a"></script>
+  <script src="pixel.js?v=20261116a"></script>
+  <script src="comun.js?v=20261116a"></script>
+  <script src="sprites.js?v=20261116a"></script>
+  <script src="red.js?v=20261116a"></script>
+  <script src="multijugador.js?v=20261116a"></script>
 </body>
 </html>

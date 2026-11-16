@@ -382,3 +382,7 @@ input { font-size: 16px; } /* evita que Safari haga zoom al escribir */
 @media (hover: hover) { .opciones.respuestas .btn-opcion:hover { background: rgba(243,239,228,.18); border-color: var(--acento); } }
 .opciones.respuestas .btn-opcion:active { background: rgba(242,193,78,.2); border-color: var(--acento); }
 .opciones.respuestas .btn-opcion:disabled { opacity: .55; }
+
+/* Centrado seguro: si el contenido es más alto que la pantalla, se puede ver desde arriba */
+.pantalla { align-items: flex-start; }
+.pantalla-caja { margin: auto 0; }

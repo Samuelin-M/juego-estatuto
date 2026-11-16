@@ -58,6 +58,7 @@
       anioConcurso: 0,
       intentos: 0,                // veces que se ha presentado al concurso (sube la dificultad)
       hechos: {},
+      evidencias: [],             // lo que hizo en el año (cuenta en la evaluación anual)
       cartas: [],
       usadas: {},                 // preguntas ya usadas de cada banco
       articulos: [],
@@ -255,8 +256,17 @@
 
   /* ============================ interiores ============================ */
 
+  // Mientras hay un panel abierto el mapa no se ve: se pausa para que el celular vaya fluido
+  function dormirMapa(si) {
+    const g = window.juego;
+    if (!g || !g.loop) return;
+    if (si && g.loop.running) g.loop.sleep();
+    else if (!si && !g.loop.running) g.loop.wake(true);
+  }
+
   function abrirPanel(icono, nombre, sub) {
     interiorAbierto = true;
+    setTimeout(() => { if (interiorAbierto) dormirMapa(true); }, 30);
     $("aviso").classList.remove("visible");
     const ic = $("int-icono");
     ic.innerHTML = "";
@@ -286,6 +296,7 @@
   function cerrarPanel() {
     $("interior").classList.add("oculto");
     interiorAbierto = false;
+    dormirMapa(false);
     actualizarHud();
     if (pueblo) pueblo.actualizarMarcadores();
   }
@@ -307,7 +318,7 @@
 
   /* -------------------- situación con opciones (genérica) -------------------- */
   // Sirve para el colegio y para las cartas.
-  function situacion(cuerpo, item, npc, alTerminar) {
+  function situacion(cuerpo, item, npc, alTerminar, etiqueta) {
     if (!item) { cuerpo.append(globo("Todavía no hay situaciones en este banco.")); accionVolver(null, alTerminar); return; }
     if (item.personaje) cuerpo.append(quien(item.personaje, npc));
     if (item.titulo) cuerpo.append(nodo("h3", "titulo-carta", item.titulo));
@@ -315,6 +326,7 @@
     cuerpo.append(nodo("div", "elige", "¿Qué haces?"));
     cuerpo.append(Comun.opciones(item, (op) => {
       const c = limpiarCuerpo();
+      E.evidencias.push({ nombre: etiqueta || item.titulo || "Situación", bien: op.correcta === undefined ? null : Comun.esCorrecta(op), efectos: op.efectos || {} });
       c.append(nodo("p", "respuesta-elegida", op.texto));
       if (op.correcta !== undefined) c.append(resultadoCaja(Comun.esCorrecta(op), Comun.esCorrecta(op) ? "¡Buena decisión!" : "No fue la mejor decisión"));
       if (op.consecuencia) c.append(globo(op.consecuencia));
@@ -456,9 +468,9 @@
   /* ------------------------------ colegio ------------------------------ */
 
   function colegio() {
-    const item = Comun.sacar("colegio", usadas("colegio"));
+    const item = Comun.sacar("colegio", usadas("colegio"), null, null, E.anio);
     const c = abrirPanel("colegio", "Colegio", `Año ${E.anio} · ${textoSituacion()}`);
-    situacion(c, item, npcDe(item && item.personaje), () => { E.hechos.colegio = true; });
+    situacion(c, item, npcDe(item && item.personaje), () => { E.hechos.colegio = true; }, "Clase en el colegio");
   }
 
   /* ------------------------------ cartas ------------------------------ */
@@ -471,7 +483,7 @@
       if (carta.sprite) carta.sprite.destroy();
       const quedan = E.cartas.filter((x) => !x.tomada).length;
       setTimeout(() => aviso(quedan ? `Te queda ${quedan} carta por recoger` : "¡Cartas listas! Ve a la Rectoría", "carta"), 300);
-    });
+    }, item && item.titulo ? item.titulo : "Situación inesperada");
   }
 
   /* ----------------------------- universidad ----------------------------- */
@@ -561,11 +573,11 @@
   function competencias() {
     const K = C.progresion.competencias;
     const base = Math.round(Object.entries(K.pesos).reduce((s, [k, w]) => s + E.ind[k] * w, 0));
-    const q = Comun.sacar("estatuto", usadas("estatuto"));
+    const q = Comun.sacar("secretaria", usadas("secretaria"), null, null, E.anio);
     let c = limpiarCuerpo();
     c.append(quien("Evaluación de competencias", "funcionaria"));
     c.append(globo(`Tu base por formación, desempeño y experiencia es ${base}. Responde esta pregunta: si aciertas sumas 10 puntos, si fallas pierdes 10.`));
-    if (!q) { c.append(globo("Todavía no hay preguntas en el banco \"estatuto\".")); accionVolver(); return; }
+    if (!q) { c.append(globo("Todavía no hay preguntas en el banco \"secretaria\".")); accionVolver(); return; }
     c.append(nodo("div", "enunciado", q.texto));
     c.append(nodo("div", "elige", "Elige una respuesta"));
     c.append(Comun.opciones(q, (o) => {
@@ -650,7 +662,9 @@
     const c = abrirPanel("rectoria", "Rectoría", `Evaluación del año ${E.anio}`);
     const esPrueba = E.laboral === "prueba";
     c.append(quien(E.cargo === "Rector" ? "Secretaría (evalúa al rector)" : "Rector", E.cargo === "Rector" ? "funcionaria" : "rector"));
-    c.append(globo(esPrueba ? "Terminó el año escolar: llegó la evaluación de tu periodo de prueba." : "Terminó el año escolar: llegó tu evaluación anual de desempeño."));
+    c.append(globo((esPrueba ? "Terminó el año escolar: llegó la evaluación de tu periodo de prueba." : "Terminó el año escolar: llegó tu evaluación anual de desempeño.") +
+      " No es un examen: reviso lo que hiciste durante el año, como las observaciones de clase y lo que opinan estudiantes y familias."));
+    c.append(carpetaEvidencias(E.evidencias));
     const tabla = nodo("div", "tabla");
     ev.partes.forEach(({ k, w, v }) => tabla.append(filaTabla(`${C.indicadores[k].nombre}: ${E.ind[k]} × ${Math.round(w * 100)}%`, v.toFixed(1), null, false, k)));
     tabla.append(filaTabla("Resultado", r + "%", null, true));
@@ -698,6 +712,20 @@
     accion(E.anio >= C.aniosDeJuego ? "Ver el final de mi carrera" : "Pasar al siguiente año", () => cerrarAnio(r));
   }
 
+  // Lo que se tuvo en cuenta en la evaluación (art. 33: observación de clases, encuestas…)
+  function carpetaEvidencias(lista) {
+    const d = nodo("div", "carpeta");
+    d.append(con("div", "art-titulo", ico("proceso"), "Carpeta de evidencias del año · Art. 33"));
+    if (!lista.length) { d.append(nodo("p", "suave pequeno", "Este año no hubo situaciones registradas.")); return d; }
+    const ul = nodo("ul", "evidencias");
+    lista.forEach((ev) => {
+      const ef = Object.entries(ev.efectos || {}).filter(([, v]) => v).map(([k, v]) => `${v > 0 ? "+" : ""}${v} ${C.indicadores[k] ? C.indicadores[k].nombre.toLowerCase() : k}`).join(", ");
+      ul.append(con("li", "", ico(ev.bien === null ? "articulo" : ev.bien ? "check" : "cruz"), con("span", "", ev.nombre, ef ? nodo("small", "", " · " + ef) : null)));
+    });
+    d.append(ul);
+    return d;
+  }
+
   function cerrarAnio(r) {
     const A = C.evaluacionAnual;
     // 1. Consecuencias de la evaluación
@@ -742,13 +770,15 @@
     if (E.laboral === "carrera") E.aniosDesdeAscenso++;
     E.anio++;
     E.hechos = {};
+    E.evidencias = [];
     E.cartas.forEach((x) => x.sprite && x.sprite.destroy());
     E.cartas = [];
 
     if (E.laboral === "excluido" || E.anio > C.aniosDeJuego) { E.fin = true; cerrarPanel(); pantallaFinal(); return; }
     if (E.laboral !== "aspirante" && pueblo) pueblo.generarCartas(2);
     cerrarPanel();
-    aviso(`Comienza el año ${E.anio}`, "reloj");
+    const tema = (C.anios || []).find((t) => t.anio === E.anio);
+    aviso(`Comienza el año ${E.anio}` + (tema ? `: ${tema.tema}` : ""), "reloj");
   }
 
   /* ============================== pantallas ============================== */
@@ -925,6 +955,7 @@
       const m = Graficos.construirMapa(this);
       this.caminable = m.caminable;
       this.dibujos = m.dibujos;
+      this.tapado = m.tapado;
 
       this.pj = C.personajes[0].id;
       const ini = MAPA.inicio;
@@ -1020,15 +1051,16 @@
       const libres = [];
       const puertas = MAPA.edificios.map((e) => e.puerta);
       MAPA.filas.forEach((fila, y) => [...fila].forEach((ch, x) => {
-        if (ch !== "g" || y <= 1) return; // la fila de arriba queda detrás de los edificios
-        if (puertas.some((p) => Math.abs(p.x - x) + Math.abs(p.y - y) < 3)) return;
+        // en cualquier casilla por donde se camina (también caminos y orillas), pero nunca detrás de algo
+        if (!this.esCaminable(x, y) || this.tapado[y][x]) return;
+        if (puertas.some((p) => Math.abs(p.x - x) + Math.abs(p.y - y) < 2)) return;
         if (Math.abs(this.casilla.x - x) + Math.abs(this.casilla.y - y) < 4) return;
         if (!this.buscarRuta(this.casilla, { x, y })) return;
         libres.push({ x, y });
       }));
       for (let i = 0; i < n && libres.length; i++) {
         const pos = libres.splice(Math.floor(Math.random() * libres.length), 1)[0];
-        const item = Comun.sacar("cartas", usadas("cartas"));
+        const item = Comun.sacar("cartas", usadas("cartas"), null, null, E.anio);
         const base = pos.y * T + T;
         const sprite = this.add.image(this.pxX(pos.x), pos.y * T + T / 2 + 4, "carta").setDepth(base);
         this.tweens.add({ targets: sprite, y: sprite.y - 5, duration: 600, yoyo: true, repeat: -1, ease: "Sine.inOut", delay: i * 200 });

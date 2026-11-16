@@ -464,6 +464,8 @@ const Graficos = (function () {
     scene.add.tileSprite(W, 0, B, H, "bosque").setOrigin(0).setDepth(0);
 
     const caminable = [];
+    const altos = [];   // objetos que pueden tapar lo que está detrás (para no esconder cartas)
+    const alto = (img) => { altos.push({ r: img.getBounds(), depth: img.depth }); return img; };
     const hash = (x, y) => (x * 73856093) ^ (y * 19349663);
     filas.forEach((fila, y) => {
       caminable[y] = [];
@@ -493,14 +495,14 @@ const Graficos = (function () {
         // objetos con profundidad según su base
         const base = py + T;
         // los árboles del borde de abajo van más bajos para no tapar al jugador
-        if (c === "T") scene.add.image(px + T / 2, base + (y === filas.length - 1 ? 22 : 2), "arbol" + (Math.abs(hash(x, y)) % 3)).setOrigin(0.5, 1).setDepth(base);
-        if (c === "k") scene.add.image(px + T / 2, base - 1, "arbusto" + (Math.abs(hash(x, y)) % 2)).setOrigin(0.5, 1).setDepth(base);
-        if (c === "r") scene.add.image(px + T / 2, base - 4, "roca").setOrigin(0.5, 1).setDepth(base);
-        if (c === "b") scene.add.image(px + T / 2, base - 3, "banca").setOrigin(0.5, 1).setDepth(base);
-        if (c === "p") scene.add.image(px + T / 2, base - 1, "tablero").setOrigin(0.5, 1).setDepth(base);
-        if (c === "m") scene.add.image(px + T / 2, base - 2, "buzon").setOrigin(0.5, 1).setDepth(base);
+        if (c === "T") alto(scene.add.image(px + T / 2, base + (y === filas.length - 1 ? 22 : 2), "arbol" + (Math.abs(hash(x, y)) % 3)).setOrigin(0.5, 1).setDepth(base));
+        if (c === "k") alto(scene.add.image(px + T / 2, base - 1, "arbusto" + (Math.abs(hash(x, y)) % 2)).setOrigin(0.5, 1).setDepth(base));
+        if (c === "r") alto(scene.add.image(px + T / 2, base - 4, "roca").setOrigin(0.5, 1).setDepth(base));
+        if (c === "b") alto(scene.add.image(px + T / 2, base - 3, "banca").setOrigin(0.5, 1).setDepth(base));
+        if (c === "p") alto(scene.add.image(px + T / 2, base - 1, "tablero").setOrigin(0.5, 1).setDepth(base));
+        if (c === "m") alto(scene.add.image(px + T / 2, base - 2, "buzon").setOrigin(0.5, 1).setDepth(base));
         if (c === "l") {
-          scene.add.image(px + T / 2, base - 2, "farol").setOrigin(0.5, 1).setDepth(base);
+          alto(scene.add.image(px + T / 2, base - 2, "farol").setOrigin(0.5, 1).setDepth(base));
           const g = scene.add.image(px + T / 2, base - 2 - 62, "resplandor").setDepth(base + 1).setBlendMode(Phaser.BlendModes.ADD);
           scene.tweens.add({ targets: g, alpha: 0.55, duration: 1400 + (x * 97) % 600, yoyo: true, repeat: -1, ease: "Sine.inOut" });
         }
@@ -512,7 +514,7 @@ const Graficos = (function () {
     filas.forEach((f, y) => [...f].forEach((c, x) => { if (c === "w") { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); } }));
     if (maxX >= 0) {
       const cx = ((minX + maxX + 1) / 2) * T, by = (maxY + 1) * T + 10;
-      const f = scene.add.image(cx, by, "fuente1").setOrigin(0.5, 1).setDepth(by);
+      const f = alto(scene.add.image(cx, by, "fuente1").setOrigin(0.5, 1).setDepth(by));
       let k = 1;
       scene.time.addEvent({ delay: 320, loop: true, callback: () => { k = 3 - k; f.setTexture("fuente" + k); } });
       for (let i = 0; i < 3; i++) {
@@ -527,7 +529,7 @@ const Graficos = (function () {
       const base = (ed.y + ed.h) * T;
       const x = ed.x * T - 4 * E;
       scene.add.rectangle(x + 4 * E + 6, base + 2, ed.w * T, 10, 0x1a2a10, 0.22).setOrigin(0, 1).setDepth(1);
-      const img = scene.add.image(x, base, textura(scene, "edificio-" + ed.id, edificio(ed))).setOrigin(0, 1).setDepth(base - 1);
+      const img = alto(scene.add.image(x, base, textura(scene, "edificio-" + ed.id, edificio(ed))).setOrigin(0, 1).setDepth(base - 1));
       const altoImg = img.height;
       const letrero = null;   // el nombre ya va pintado en el letrero de madera
       const insignia = scene.add.image(x + img.width - 10, base - altoImg + (22 + 4) * E, "ico-check").setOrigin(0.5).setDepth(base + 2).setVisible(false);
@@ -535,7 +537,19 @@ const Graficos = (function () {
       dibujos[ed.id] = { imagen: img, letrero, insignia };
     });
 
-    return { caminable, dibujos };
+    // Casillas donde una carta quedaría escondida detrás de un árbol, un poste, una casa…
+    const tapado = filas.map((fila, y) => [...fila].map((_, x) => {
+      const cx = x * T + T / 2, cy = y * T + T / 2 + 4;
+      const carta = new Phaser.Geom.Rectangle(cx - 11, cy - 14, 22, 28);
+      const area = carta.width * carta.height;
+      return altos.some((o) => {
+        if (o.depth <= (y + 1) * T) return false;       // lo que está más arriba en el mapa queda detrás de la carta
+        const i = Phaser.Geom.Rectangle.Intersection(carta, o.r);
+        return i.width * i.height > area * 0.3;          // más de un 30 % tapado = escondida
+      });
+    }));
+
+    return { caminable, dibujos, tapado };
   }
 
   // tipo: "check" | "candado" | "estrella" | null

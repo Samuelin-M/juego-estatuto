@@ -5,9 +5,9 @@
    Basado en la "Propuesta de dinámica" del grupo y en el Decreto 1278 de 2002
    (Estatuto de Profesionalización Docente), artículos 8 a 40.
 
-   PREGUNTAS: están en "bancos". Por ahora son marcadores ("Pregunta 1",
-   "Respuesta A"...) para que el grupo escriba las definitivas. Cada
-   pregunta tiene opciones y se marca la correcta con  correcta: true.
+   PREGUNTAS: están en "bancos" (ver más abajo cuántas hacer de cada una).
+   Por ahora son ejemplos ("Pregunta 1", "Respuesta A"...) para que el grupo
+   escriba las definitivas. La correcta se marca con  correcta: true.
 
    INDICADORES (de 0 a 100): experiencia, formacion, popularidad, desempeno.
    "efectos" suma o resta a esos indicadores, por ejemplo:
@@ -23,8 +23,17 @@ const CONTENIDO = {
   // incorrectas de rojo. Cuando estén las preguntas definitivas → false.
   mostrarCorrectas: true,
 
-  // Años de servicio que dura una partida individual
+  // Años que dura una partida (en los dos modos)
   aniosDeJuego: 5,
+
+  // Tema de cada año: las preguntas y situaciones de ese año tratan estos artículos
+  anios: [
+    { anio: 1, tema: "Ingreso al servicio", articulos: "Arts. 8–15" },
+    { anio: 2, tema: "Carrera docente y escalafón", articulos: "Arts. 16–25" },
+    { anio: 3, tema: "Evaluación y formación", articulos: "Arts. 26–34 y 38" },
+    { anio: 4, tema: "Competencias, ascenso y reubicación", articulos: "Arts. 20–23, 35 y 36" },
+    { anio: 5, tema: "Directivos, derechos y ética", articulos: "Arts. 10, 22, 37, 39 y 40" }
+  ],
 
   indicadores: {
     experiencia: { nombre: "Experiencia", icono: "⏳", descripcion: "Tiempo y trayectoria en el ejercicio docente." },
@@ -203,15 +212,53 @@ const CONTENIDO = {
     ]
   },
 
+  /* ======================= BANCOS DE PREGUNTAS ======================= */
+  // Por ahora son EJEMPLOS ("Pregunta 1", "Respuesta A"...) para que el grupo
+  // escriba las definitivas. Cada pregunta y situación lleva:
+  //   anio:       en qué año de la carrera sale (1 a 5). Nunca sale en otro año.
+  //   dificultad: 1 fácil, 2 intermedia, 3 difícil. En el multijugador las difíciles dan más puntos.
+  //   opciones:   la correcta se marca con  correcta: true  (pueden ser 2, 3 o más opciones).
+  //   articulo y explicacion: el artículo del estatuto y por qué esa es la respuesta.
+  // Las situaciones (colegio y cartas) llevan además, en cada opción, sus "efectos"
+  // sobre los indicadores y la "consecuencia" de esa decisión. Esos efectos son los
+  // que luego cuentan en la evaluación anual (no hay examen: art. 32 a 34).
+  //
+  // CUÁNTAS HACER (para que a cada jugador le salgan distintas y de las tres dificultades):
+  //   aptitudes, psicotecnica, entrevista: 6 de cada una (2 fáciles, 2 intermedias, 2 difíciles), año 1
+  //   colegio:      3 por año (1 de cada dificultad)  → 15 en total
+  //   cartas:       6 por año (2 de cada dificultad)  → 30 en total
+  //   universidad:  3 (año 3, 1 de cada dificultad)
+  //   secretaria:   3 por año en los años 4 y 5       → 6 en total
   bancos: {
-    // Concurso docente: se toma una pregunta de cada banco.
-    // DIFICULTAD: si el jugador repite el concurso, le salen preguntas distintas
-    // y más difíciles. 1.er intento → dificultad 1; 2.º → 2; del 3.º en adelante → 3.
-    // ¡Recuerden escribir preguntas más difíciles para los niveles 2 y 3!
+    // CONCURSO DOCENTE (año 1): una pregunta de cada prueba.
+    // En el modo individual, si se repite el concurso salen preguntas nuevas y más
+    // difíciles: 1.er intento → fáciles; 2.º → intermedias; del 3.º en adelante → difíciles.
     aptitudes: [
       {
-        dificultad: 1,
-        texto: "Pregunta 1 (aptitudes · nivel 1, fácil): aquí va el enunciado.",
+        anio: 1, dificultad: 1,
+        texto: "Pregunta 1 (aptitudes · fácil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false },
+          { texto: "Respuesta B", correcta: true },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 1, dificultad: 1,
+        texto: "Pregunta 2 (aptitudes · fácil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true },
+          { texto: "Respuesta B", correcta: false },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 1, dificultad: 2,
+        texto: "Pregunta 3 (aptitudes · intermedia): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: false },
           { texto: "Respuesta B", correcta: false },
@@ -221,19 +268,8 @@ const CONTENIDO = {
         explicacion: "Aquí va la explicación de la respuesta correcta."
       },
       {
-        dificultad: 1,
-        texto: "Pregunta 2 (aptitudes · nivel 1, fácil): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        dificultad: 2,
-        texto: "Pregunta 3 (aptitudes · nivel 2, media): aquí va el enunciado.",
+        anio: 1, dificultad: 2,
+        texto: "Pregunta 4 (aptitudes · intermedia): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: false },
           { texto: "Respuesta B", correcta: true },
@@ -243,19 +279,8 @@ const CONTENIDO = {
         explicacion: "Aquí va la explicación de la respuesta correcta."
       },
       {
-        dificultad: 2,
-        texto: "Pregunta 4 (aptitudes · nivel 2, media): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        dificultad: 3,
-        texto: "Pregunta 5 (aptitudes · nivel 3, difícil): aquí va el enunciado.",
+        anio: 1, dificultad: 3,
+        texto: "Pregunta 5 (aptitudes · difícil): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: true },
           { texto: "Respuesta B", correcta: false },
@@ -265,8 +290,8 @@ const CONTENIDO = {
         explicacion: "Aquí va la explicación de la respuesta correcta."
       },
       {
-        dificultad: 3,
-        texto: "Pregunta 6 (aptitudes · nivel 3, difícil): aquí va el enunciado.",
+        anio: 1, dificultad: 3,
+        texto: "Pregunta 6 (aptitudes · difícil): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: false },
           { texto: "Respuesta B", correcta: false },
@@ -278,8 +303,8 @@ const CONTENIDO = {
     ],
     psicotecnica: [
       {
-        dificultad: 1,
-        texto: "Pregunta 1 (psicotécnica · nivel 1, fácil): aquí va el enunciado.",
+        anio: 1, dificultad: 1,
+        texto: "Pregunta 1 (psicotecnica · fácil): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: false },
           { texto: "Respuesta B", correcta: true },
@@ -289,8 +314,8 @@ const CONTENIDO = {
         explicacion: "Aquí va la explicación de la respuesta correcta."
       },
       {
-        dificultad: 1,
-        texto: "Pregunta 2 (psicotécnica · nivel 1, fácil): aquí va el enunciado.",
+        anio: 1, dificultad: 1,
+        texto: "Pregunta 2 (psicotecnica · fácil): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: true },
           { texto: "Respuesta B", correcta: false },
@@ -300,8 +325,8 @@ const CONTENIDO = {
         explicacion: "Aquí va la explicación de la respuesta correcta."
       },
       {
-        dificultad: 2,
-        texto: "Pregunta 3 (psicotécnica · nivel 2, media): aquí va el enunciado.",
+        anio: 1, dificultad: 2,
+        texto: "Pregunta 3 (psicotecnica · intermedia): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: false },
           { texto: "Respuesta B", correcta: false },
@@ -311,34 +336,34 @@ const CONTENIDO = {
         explicacion: "Aquí va la explicación de la respuesta correcta."
       },
       {
-        dificultad: 2,
-        texto: "Pregunta 4 (psicotécnica · nivel 2, media): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        dificultad: 3,
-        texto: "Pregunta 5 (psicotécnica · nivel 3, difícil): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        dificultad: 3,
-        texto: "Pregunta 6 (psicotécnica · nivel 3, difícil): aquí va el enunciado.",
+        anio: 1, dificultad: 2,
+        texto: "Pregunta 4 (psicotecnica · intermedia): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: false },
           { texto: "Respuesta B", correcta: true },
           { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 1, dificultad: 3,
+        texto: "Pregunta 5 (psicotecnica · difícil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true },
+          { texto: "Respuesta B", correcta: false },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 1, dificultad: 3,
+        texto: "Pregunta 6 (psicotecnica · difícil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false },
+          { texto: "Respuesta B", correcta: false },
+          { texto: "Respuesta C", correcta: true }
         ],
         articulo: "Art. —",
         explicacion: "Aquí va la explicación de la respuesta correcta."
@@ -346,19 +371,8 @@ const CONTENIDO = {
     ],
     entrevista: [
       {
-        dificultad: 1,
-        texto: "Pregunta 1 (entrevista · nivel 1, fácil): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        dificultad: 1,
-        texto: "Pregunta 2 (entrevista · nivel 1, fácil): aquí va el enunciado.",
+        anio: 1, dificultad: 1,
+        texto: "Pregunta 1 (entrevista · fácil): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: false },
           { texto: "Respuesta B", correcta: true },
@@ -368,19 +382,8 @@ const CONTENIDO = {
         explicacion: "Aquí va la explicación de la respuesta correcta."
       },
       {
-        dificultad: 2,
-        texto: "Pregunta 3 (entrevista · nivel 2, media): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        dificultad: 2,
-        texto: "Pregunta 4 (entrevista · nivel 2, media): aquí va el enunciado.",
+        anio: 1, dificultad: 1,
+        texto: "Pregunta 2 (entrevista · fácil): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: true },
           { texto: "Respuesta B", correcta: false },
@@ -390,8 +393,8 @@ const CONTENIDO = {
         explicacion: "Aquí va la explicación de la respuesta correcta."
       },
       {
-        dificultad: 3,
-        texto: "Pregunta 5 (entrevista · nivel 3, difícil): aquí va el enunciado.",
+        anio: 1, dificultad: 2,
+        texto: "Pregunta 3 (entrevista · intermedia): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: false },
           { texto: "Respuesta B", correcta: false },
@@ -401,8 +404,30 @@ const CONTENIDO = {
         explicacion: "Aquí va la explicación de la respuesta correcta."
       },
       {
-        dificultad: 3,
-        texto: "Pregunta 6 (entrevista · nivel 3, difícil): aquí va el enunciado.",
+        anio: 1, dificultad: 2,
+        texto: "Pregunta 4 (entrevista · intermedia): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false },
+          { texto: "Respuesta B", correcta: true },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 1, dificultad: 3,
+        texto: "Pregunta 5 (entrevista · difícil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true },
+          { texto: "Respuesta B", correcta: false },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 1, dificultad: 3,
+        texto: "Pregunta 6 (entrevista · difícil): aquí va el enunciado.",
         opciones: [
           { texto: "Respuesta A", correcta: false },
           { texto: "Respuesta B", correcta: false },
@@ -412,123 +437,11 @@ const CONTENIDO = {
         explicacion: "Aquí va la explicación de la respuesta correcta."
       }
     ],
-    // Preguntas sobre el estatuto (multijugador y evaluación de competencias)
-    estatuto: [
-      {
-        texto: "Pregunta 1 (estatuto): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        texto: "Pregunta 2 (estatuto): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        texto: "Pregunta 3 (estatuto): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        texto: "Pregunta 4 (estatuto): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        texto: "Pregunta 5 (estatuto): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        texto: "Pregunta 6 (estatuto): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        texto: "Pregunta 7 (estatuto): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        texto: "Pregunta 8 (estatuto): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        texto: "Pregunta 9 (estatuto): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        texto: "Pregunta 10 (estatuto): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      }
-    ],
-    // Situaciones en el colegio (una por año en el modo individual)
+    // SITUACIONES EN EL COLEGIO: una por año.
     colegio: [
       {
-        personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 1: aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 2: aquí va la situación.",
+        anio: 1, dificultad: 1, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 1 (año 1 · fácil): aquí va la situación.",
         opciones: [
           { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
@@ -536,8 +449,8 @@ const CONTENIDO = {
         ]
       },
       {
-        personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 3: aquí va la situación.",
+        anio: 1, dificultad: 2, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 2 (año 1 · intermedia): aquí va la situación.",
         opciones: [
           { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
@@ -545,17 +458,8 @@ const CONTENIDO = {
         ]
       },
       {
-        personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 4: aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 5: aquí va la situación.",
+        anio: 1, dificultad: 3, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 3 (año 1 · difícil): aquí va la situación.",
         opciones: [
           { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
@@ -563,47 +467,119 @@ const CONTENIDO = {
         ]
       },
       {
-        personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 6: aquí va la situación.",
+        anio: 2, dificultad: 1, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 4 (año 2 · fácil): aquí va la situación.",
         opciones: [
           { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 2, dificultad: 2, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 5 (año 2 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 2, dificultad: 3, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 6 (año 2 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 3, dificultad: 1, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 7 (año 3 · fácil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 3, dificultad: 2, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 8 (año 3 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 3, dificultad: 3, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 9 (año 3 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 4, dificultad: 1, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 10 (año 4 · fácil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 4, dificultad: 2, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 11 (año 4 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 4, dificultad: 3, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 12 (año 4 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 5, dificultad: 1, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 13 (año 5 · fácil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 5, dificultad: 2, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 14 (año 5 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 5, dificultad: 3, personaje: "Personaje de la situación",
+        texto: "Situación en el colegio 15 (año 5 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
         ]
       }
     ],
-    // Situaciones inesperadas (cartas del mapa)
+    // SITUACIONES INESPERADAS (cartas que se buscan en el mapa): dos por año.
     cartas: [
       {
-        tipo: "Laboral", titulo: "Situación inesperada 1",
-        texto: "Situación inesperada 1: aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        tipo: "Personal", titulo: "Situación inesperada 2",
-        texto: "Situación inesperada 2: aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        tipo: "Institucional", titulo: "Situación inesperada 3",
-        texto: "Situación inesperada 3: aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        tipo: "Laboral", titulo: "Situación inesperada 4",
-        texto: "Situación inesperada 4: aquí va la situación.",
+        anio: 1, dificultad: 1, tipo: "Personal", titulo: "Situación inesperada 1",
+        texto: "Situación inesperada 1 (año 1 · fácil): aquí va la situación.",
         opciones: [
           { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
@@ -611,8 +587,8 @@ const CONTENIDO = {
         ]
       },
       {
-        tipo: "Personal", titulo: "Situación inesperada 5",
-        texto: "Situación inesperada 5: aquí va la situación.",
+        anio: 1, dificultad: 1, tipo: "Institucional", titulo: "Situación inesperada 2",
+        texto: "Situación inesperada 2 (año 1 · fácil): aquí va la situación.",
         opciones: [
           { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
@@ -620,17 +596,8 @@ const CONTENIDO = {
         ]
       },
       {
-        tipo: "Institucional", titulo: "Situación inesperada 6",
-        texto: "Situación inesperada 6: aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        tipo: "Laboral", titulo: "Situación inesperada 7",
-        texto: "Situación inesperada 7: aquí va la situación.",
+        anio: 1, dificultad: 2, tipo: "Laboral", titulo: "Situación inesperada 3",
+        texto: "Situación inesperada 3 (año 1 · intermedia): aquí va la situación.",
         opciones: [
           { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
@@ -638,8 +605,8 @@ const CONTENIDO = {
         ]
       },
       {
-        tipo: "Personal", titulo: "Situación inesperada 8",
-        texto: "Situación inesperada 8: aquí va la situación.",
+        anio: 1, dificultad: 2, tipo: "Personal", titulo: "Situación inesperada 4",
+        texto: "Situación inesperada 4 (año 1 · intermedia): aquí va la situación.",
         opciones: [
           { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
@@ -647,8 +614,8 @@ const CONTENIDO = {
         ]
       },
       {
-        tipo: "Institucional", titulo: "Situación inesperada 9",
-        texto: "Situación inesperada 9: aquí va la situación.",
+        anio: 1, dificultad: 3, tipo: "Institucional", titulo: "Situación inesperada 5",
+        texto: "Situación inesperada 5 (año 1 · difícil): aquí va la situación.",
         opciones: [
           { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
@@ -656,43 +623,371 @@ const CONTENIDO = {
         ]
       },
       {
-        tipo: "Laboral", titulo: "Situación inesperada 10",
-        texto: "Situación inesperada 10: aquí va la situación.",
+        anio: 1, dificultad: 3, tipo: "Laboral", titulo: "Situación inesperada 6",
+        texto: "Situación inesperada 6 (año 1 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 2, dificultad: 1, tipo: "Personal", titulo: "Situación inesperada 7",
+        texto: "Situación inesperada 7 (año 2 · fácil): aquí va la situación.",
         opciones: [
           { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
           { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
         ]
+      },
+      {
+        anio: 2, dificultad: 1, tipo: "Institucional", titulo: "Situación inesperada 8",
+        texto: "Situación inesperada 8 (año 2 · fácil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 2, dificultad: 2, tipo: "Laboral", titulo: "Situación inesperada 9",
+        texto: "Situación inesperada 9 (año 2 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 2, dificultad: 2, tipo: "Personal", titulo: "Situación inesperada 10",
+        texto: "Situación inesperada 10 (año 2 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 2, dificultad: 3, tipo: "Institucional", titulo: "Situación inesperada 11",
+        texto: "Situación inesperada 11 (año 2 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 2, dificultad: 3, tipo: "Laboral", titulo: "Situación inesperada 12",
+        texto: "Situación inesperada 12 (año 2 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 3, dificultad: 1, tipo: "Personal", titulo: "Situación inesperada 13",
+        texto: "Situación inesperada 13 (año 3 · fácil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 3, dificultad: 1, tipo: "Institucional", titulo: "Situación inesperada 14",
+        texto: "Situación inesperada 14 (año 3 · fácil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 3, dificultad: 2, tipo: "Laboral", titulo: "Situación inesperada 15",
+        texto: "Situación inesperada 15 (año 3 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 3, dificultad: 2, tipo: "Personal", titulo: "Situación inesperada 16",
+        texto: "Situación inesperada 16 (año 3 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 3, dificultad: 3, tipo: "Institucional", titulo: "Situación inesperada 17",
+        texto: "Situación inesperada 17 (año 3 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 3, dificultad: 3, tipo: "Laboral", titulo: "Situación inesperada 18",
+        texto: "Situación inesperada 18 (año 3 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 4, dificultad: 1, tipo: "Personal", titulo: "Situación inesperada 19",
+        texto: "Situación inesperada 19 (año 4 · fácil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 4, dificultad: 1, tipo: "Institucional", titulo: "Situación inesperada 20",
+        texto: "Situación inesperada 20 (año 4 · fácil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 4, dificultad: 2, tipo: "Laboral", titulo: "Situación inesperada 21",
+        texto: "Situación inesperada 21 (año 4 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 4, dificultad: 2, tipo: "Personal", titulo: "Situación inesperada 22",
+        texto: "Situación inesperada 22 (año 4 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 4, dificultad: 3, tipo: "Institucional", titulo: "Situación inesperada 23",
+        texto: "Situación inesperada 23 (año 4 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 4, dificultad: 3, tipo: "Laboral", titulo: "Situación inesperada 24",
+        texto: "Situación inesperada 24 (año 4 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 5, dificultad: 1, tipo: "Personal", titulo: "Situación inesperada 25",
+        texto: "Situación inesperada 25 (año 5 · fácil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 5, dificultad: 1, tipo: "Institucional", titulo: "Situación inesperada 26",
+        texto: "Situación inesperada 26 (año 5 · fácil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 5, dificultad: 2, tipo: "Laboral", titulo: "Situación inesperada 27",
+        texto: "Situación inesperada 27 (año 5 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 5, dificultad: 2, tipo: "Personal", titulo: "Situación inesperada 28",
+        texto: "Situación inesperada 28 (año 5 · intermedia): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 5, dificultad: 3, tipo: "Institucional", titulo: "Situación inesperada 29",
+        texto: "Situación inesperada 29 (año 5 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      },
+      {
+        anio: 5, dificultad: 3, tipo: "Laboral", titulo: "Situación inesperada 30",
+        texto: "Situación inesperada 30 (año 5 · difícil): aquí va la situación.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
+          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+        ]
+      }
+    ],
+    // UNIVERSIDAD (formación, año 3 del multijugador).
+    universidad: [
+      {
+        anio: 3, dificultad: 1,
+        texto: "Pregunta 1 (universidad · año 3 · fácil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true },
+          { texto: "Respuesta B", correcta: false },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 3, dificultad: 2,
+        texto: "Pregunta 2 (universidad · año 3 · intermedia): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false },
+          { texto: "Respuesta B", correcta: true },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 3, dificultad: 3,
+        texto: "Pregunta 3 (universidad · año 3 · difícil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false },
+          { texto: "Respuesta B", correcta: false },
+          { texto: "Respuesta C", correcta: true }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      }
+    ],
+    // SECRETARÍA (escalafón, ascenso, directivos: años 4 y 5). En el individual se usa
+    // en la evaluación de competencias.
+    secretaria: [
+      {
+        anio: 4, dificultad: 1,
+        texto: "Pregunta 1 (secretaría · año 4 · fácil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true },
+          { texto: "Respuesta B", correcta: false },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 4, dificultad: 2,
+        texto: "Pregunta 2 (secretaría · año 4 · intermedia): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false },
+          { texto: "Respuesta B", correcta: true },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 4, dificultad: 3,
+        texto: "Pregunta 3 (secretaría · año 4 · difícil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false },
+          { texto: "Respuesta B", correcta: false },
+          { texto: "Respuesta C", correcta: true }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 5, dificultad: 1,
+        texto: "Pregunta 4 (secretaría · año 5 · fácil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: true },
+          { texto: "Respuesta B", correcta: false },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 5, dificultad: 2,
+        texto: "Pregunta 5 (secretaría · año 5 · intermedia): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false },
+          { texto: "Respuesta B", correcta: true },
+          { texto: "Respuesta C", correcta: false }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
+      },
+      {
+        anio: 5, dificultad: 3,
+        texto: "Pregunta 6 (secretaría · año 5 · difícil): aquí va el enunciado.",
+        opciones: [
+          { texto: "Respuesta A", correcta: false },
+          { texto: "Respuesta B", correcta: false },
+          { texto: "Respuesta C", correcta: true }
+        ],
+        articulo: "Art. —",
+        explicacion: "Aquí va la explicación de la respuesta correcta."
       }
     ]
   },
 
   /* ============================ MULTIJUGADOR ============================ */
   // Hasta 3 jugadores en el mismo mapa, cada uno con un personaje distinto.
-  // Compiten por completar los procesos en orden respondiendo preguntas.
-  // "preguntas" es la lista de bancos de los que se saca cada pregunta
-  // (todos los jugadores reciben las mismas, en el mismo orden).
+  // Se juega por años, como el modo individual: cada uno hace las tareas de su
+  // año (en orden) y, al terminar, espera a que todos terminen para pasar
+  // juntos al año siguiente. Entre más rápido termine el año, más puntos.
+  // A cada jugador le salen sus propias preguntas y situaciones.
   multijugador: {
     maxJugadores: 3,
     segundosPorPregunta: 20,
-    puntosAcierto: 100,
-    bonoRapidez: 50,              // máximo, si se responde al instante
-    bonoLlegada: [100, 60, 30],   // por terminar de 1°, 2° y 3°
+    puntosPorDificultad: [100, 150, 200],   // por acertar una pregunta o situación fácil, intermedia o difícil
+    bonoRapidez: 50,                        // máximo, si se responde al instante
+    bonoLlegadaAnio: [60, 30, 10],          // por terminar el año de 1.°, 2.° y 3.°
     bonoOportunidad: { vacante: 60, provisional: 30, reemplazo: 10, ninguna: 0 },
-    duracionMaximaMin: 15,
-    procesos: [
-      { id: "concurso", edificio: "secretaria", nombre: "Concurso docente", articulos: "Arts. 7–15", concurso: true,
-        preguntas: ["aptitudes", "psicotecnica", "entrevista"] },
-      { id: "prueba", edificio: "colegio", nombre: "Periodo de prueba", articulos: "Arts. 12, 31, 33 y 34",
-        preguntas: ["colegio", "colegio", "estatuto"] },
-      { id: "cartas", tipo: "cartas", nombre: "Situaciones inesperadas", articulos: "Arts. 36–40",
-        preguntas: ["cartas", "cartas"] },
-      { id: "evaluacion", edificio: "rectoria", nombre: "Evaluación anual", articulos: "Arts. 32–36",
-        preguntas: ["estatuto", "estatuto"] },
-      { id: "formacion", edificio: "universidad", nombre: "Formación", articulos: "Arts. 21 y 38",
-        preguntas: ["estatuto", "cartas"] },
-      { id: "ascenso", edificio: "secretaria", nombre: "Ascenso en el escalafón", articulos: "Arts. 10, 20 y 36",
-        preguntas: ["estatuto", "estatuto", "estatuto"] }
-    ]
+    cartasPorAnio: 2,
+    esperaParaForzar: 45,                   // segundos de espera antes de que el anfitrión pueda pasar de año sin esperar
+    duracionMaximaMin: 45,
+    // Lo que hay que hacer cada año, en orden. La evaluación anual va al final y NO tiene
+    // preguntas: sale de lo que se hizo en el año (arts. 32 a 34).
+    tareasPorAnio: [
+      ["concurso", "colegio", "cartas", "evaluacion"],
+      ["colegio", "cartas", "evaluacion"],
+      ["universidad", "colegio", "cartas", "evaluacion"],
+      ["secretaria", "colegio", "cartas", "evaluacion"],
+      ["secretaria", "colegio", "cartas", "evaluacion"]
+    ],
+    tareas: {
+      concurso:    { nombre: "Concurso docente", edificio: "secretaria", articulos: "Arts. 8–13" },
+      colegio:     { nombre: "Clase en el colegio", edificio: "colegio", articulos: "Según el tema del año" },
+      cartas:      { nombre: "Situaciones inesperadas", articulos: "" },
+      universidad: { nombre: "Formación en la universidad", edificio: "universidad", articulos: "Arts. 21 y 38" },
+      secretaria:  { nombre: "Trámite en la Secretaría", edificio: "secretaria", articulos: "Arts. 10, 20–23, 35 y 36" },
+      evaluacion:  { nombre: "Evaluación anual de desempeño", edificio: "rectoria", articulos: "Arts. 31 a 34" }
+    }
   }
 };

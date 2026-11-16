@@ -10,41 +10,46 @@ Sigue la *Propuesta de dinámica* del grupo y las sugerencias del documento de �
 
 ## Preguntas y situaciones (lo que falta escribir)
 
-Todas las preguntas están en `contenido.js`, dentro de `bancos`. Por ahora son **ejemplos** ("Pregunta 1", "Respuesta A", "Situación inesperada 1"…) para que el grupo escriba las definitivas:
+Todo está en `contenido.js`, dentro de `bancos`. Por ahora son **ejemplos** ("Pregunta 1", "Respuesta A", "Situación inesperada 1"…) para que el grupo escriba las definitivas. Cada pregunta y situación lleva el **año** en que sale (1 a 5, nunca sale en otro año) y su **dificultad** (1 fácil, 2 intermedia, 3 difícil).
 
-| Banco | Para qué se usa |
-|---|---|
-| `aptitudes`, `psicotecnica`, `entrevista` | Una pregunta de cada una en el concurso docente |
-| `estatuto` | Evaluación de competencias (individual) y preguntas del multijugador |
-| `colegio` | Una situación de aula por año |
-| `cartas` | Las situaciones inesperadas que aparecen en el mapa |
+| Banco | Dónde sale | Cuántas hacer |
+|---|---|---|
+| `aptitudes`, `psicotecnica`, `entrevista` | Concurso docente (año 1) | 6 de cada una: 2 fáciles, 2 intermedias, 2 difíciles |
+| `colegio` | Una situación de clase por año | 3 por año (una de cada dificultad) → 15 |
+| `cartas` | Dos situaciones inesperadas por año (se buscan en el mapa) | 6 por año (dos de cada dificultad) → 30 |
+| `universidad` | Formación, año 3 del multijugador | 3 (una de cada dificultad) |
+| `secretaria` | Escalafón y directivos, años 4 y 5 (en el individual, evaluación de competencias) | 3 por año → 6 |
 
-- La respuesta correcta se marca con `correcta: true`.
+- La respuesta correcta se marca con `correcta: true`. Pueden tener 2, 3 o más opciones.
 - **Modo prueba:** con `mostrarCorrectas: true` la correcta sale en verde y las incorrectas en rojo. Cuando estén las preguntas definitivas, cambiarlo a `false`.
-- **Dificultad del concurso:** cada pregunta de `aptitudes`, `psicotecnica` y `entrevista` tiene `dificultad: 1, 2 o 3`. Si el jugador repite el concurso, le salen preguntas distintas y más difíciles (1.er intento → nivel 1, 2.º → nivel 2, del 3.º en adelante → nivel 3). **Hay que escribir preguntas más difíciles para los niveles 2 y 3.**
-- En las situaciones (`colegio` y `cartas`), cada opción tiene sus `efectos` sobre los indicadores, la `consecuencia` y el artículo con su explicación.
+- **La evaluación anual no tiene preguntas** (así es en la realidad, arts. 32 a 34): sale de lo que se hizo en el año. Por eso los `efectos` de cada opción de las situaciones (colegio y cartas) son los que suben o bajan la evaluación.
+- En el modo individual, si el jugador repite el concurso, le salen preguntas nuevas y más difíciles.
+- El tema de cada año (y sus artículos) está en `anios`, dentro de `contenido.js`.
 
 ## Modalidades
 
 ### Individual (`index.html`)
-Indicaciones → escoger personaje → concurso docente (art. 7) → convocatoria e inscripción → el pueblo, durante 5 años:
+Indicaciones → escoger personaje → concurso docente → convocatoria e inscripción → el pueblo, durante 5 años:
 
 | Edificio | Qué pasa | Artículos |
 |---|---|---|
 | **Secretaría** | Concurso docente en 4 etapas: aptitudes, psicotécnica, valoración de antecedentes y entrevista → vacante, provisional o reemplazo. Después: evaluación de competencias (ascenso/reubicación) y concursos para coordinador y rector | 7–15, 10, 20–23, 35–36 |
-| **Colegio** | Una situación de aula por año | 29, 33, 34, 39 |
-| **Cartas** | Dos situaciones inesperadas por año que aparecen en el mapa | 14, 36–40 |
+| **Colegio** | Una situación de clase por año | Según el año |
+| **Cartas** | Dos situaciones inesperadas por año que hay que buscar en el mapa | Según el año |
 | **Universidad** | Formación: licenciatura, pedagogía, especialización, maestría, doctorado | 12, 21, 38 |
-| **Rectoría** | Evaluación anual (60% mínimo) | 12, 13, 31, 32, 36 |
+| **Rectoría** | Evaluación anual con la carpeta de evidencias del año (sin examen; 60% mínimo) | 12, 13, 31–36 |
+
+Arriba a la derecha hay un menú para empezar una partida nueva o volver al menú.
 
 ### Multijugador (`multijugador.html`)
-Hasta 3 jugadores en el mismo pueblo, cada uno con un personaje distinto:
+Hasta 3 jugadores en el mismo pueblo, cada uno con un personaje distinto, viven los 5 años al mismo tiempo:
 
-1. Uno crea la sala y comparte el código, el QR o el enlace; los demás se unen desde su celular.
-2. Cada uno elige personaje (no se pueden repetir) y el anfitrión empieza la partida.
-3. Todos se ven caminar en el mapa y compiten por completar 6 procesos en orden: concurso → periodo de prueba → cartas → evaluación → formación → ascenso (15 preguntas, las mismas para todos).
-4. Cada pregunta tiene 20 segundos: acierto = 100 puntos + hasta 50 por rapidez. Además hay bono por la oportunidad laboral del concurso (depende de los antecedentes del personaje) y por orden de llegada.
-5. Al final, podio para todos.
+1. Uno crea la sala y comparte el código, el QR o el enlace; los demás se unen desde su celular y eligen personaje.
+2. Cada año hay tareas en orden (`multijugador.tareasPorAnio`): año 1 concurso, colegio, cartas y evaluación; año 3 suma la universidad; años 4 y 5 suman la Secretaría.
+3. Quien termina su año queda en **lista de espera** (puede seguir caminando) hasta que todos terminen; entonces pasan juntos al año siguiente. Si alguien se queda quieto, el anfitrión puede pasar de año sin esperar.
+4. Puntos: acertar (100, 150 o 200 según la dificultad) + rapidez (hasta 50), evaluación anual, orden de llegada de cada año (60, 30, 10) y resultado del concurso.
+5. Cada uno ve a los demás en el mapa, con un globito de lo que están haciendo. A cada uno le salen sus propias preguntas y situaciones.
+6. Al final, podio. Desde el menú se puede salir, cancelar la partida para todos o jugar otra en la misma sala.
 
 La conexión usa Supabase Realtime (configurado en `config.js`).
 

@@ -10,16 +10,33 @@ const Comun = (function () {
 
   // Saca un elemento de un banco sin repetir los ya usados.
   //   usadas: lista de índices ya usados (se actualiza)
-  //   nivel:  dificultad deseada (1, 2 o 3). Si ya no quedan de ese nivel,
-  //           toma el más cercano, prefiriendo uno más difícil.
-  //   r:      función de azar (0..1). En el multijugador es la misma para todos.
-  function sacar(nombre, usadas, nivel, r) {
+  //   nivel:  dificultad deseada (1, 2 o 3). Si ya no quedan de ese nivel, toma la
+  //           más cercana, prefiriendo una más difícil. Sin nivel: cualquiera, al azar.
+  //   r:      función de azar (0..1)
+  //   anio:   año de la carrera. Solo salen preguntas de ese año; si el banco no tiene
+  //           de ese año, de los años anteriores (nunca de años más avanzados).
+  function sacar(nombre, usadas, nivel, r, anio) {
     r = r || Math.random;
     const lista = banco(nombre);
     if (!lista.length) return null;
-    const todos = lista.map((_, i) => i);
-    let libres = todos.filter((i) => !usadas.includes(i));
-    if (!libres.length) { usadas.length = 0; libres = todos.slice(); }
+    let base = lista.map((_, i) => i);
+    if (anio) {
+      const anioDe = (i) => lista[i].anio || anio;          // sin "anio" sirve para cualquier año
+      const exactas = base.filter((i) => anioDe(i) === anio);
+      if (exactas.length) base = exactas;
+      else {
+        const previas = base.filter((i) => anioDe(i) < anio);
+        if (previas.length) {
+          const masCercano = Math.max(...previas.map(anioDe));
+          base = previas.filter((i) => anioDe(i) === masCercano);
+        }
+      }
+    }
+    let libres = base.filter((i) => !usadas.includes(i));
+    if (!libres.length) {                                     // ya salieron todas: se pueden repetir
+      for (let k = usadas.length - 1; k >= 0; k--) if (base.includes(usadas[k])) usadas.splice(k, 1);
+      libres = base.slice();
+    }
     if (nivel) {
       const dif = (i) => lista[i].dificultad || 1;
       const orden = [nivel];
@@ -33,6 +50,9 @@ const Comun = (function () {
     usadas.push(i);
     return Object.assign({ indice: i, banco: nombre }, lista[i]);
   }
+
+  const NIVELES = { 1: "fácil", 2: "intermedia", 3: "difícil" };
+  const nombreNivel = (d) => NIVELES[d] || NIVELES[1];
 
   // Elemento exacto de un banco (para que todos vean lo mismo en el multijugador)
   function item(nombre, indice) {
@@ -81,5 +101,5 @@ const Comun = (function () {
     return p;
   }
 
-  return { banco, sacar, item, valor, esCorrecta, correctaDe, tieneCorrecta, articuloReal, opciones, avisoPrueba };
+  return { banco, sacar, item, valor, esCorrecta, correctaDe, tieneCorrecta, articuloReal, opciones, avisoPrueba, nombreNivel };
 })();

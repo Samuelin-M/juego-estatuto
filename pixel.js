@@ -318,19 +318,40 @@ const Pixel = (function () {
     return contorno(l);
   }
 
+  // Las imágenes de la interfaz se dibujan una sola vez y se reutilizan
+  const cacheUrl = {};
+  function urlDe(clave, hacer) {
+    if (!cacheUrl[clave]) cacheUrl[clave] = hacer().toDataURL();
+    return cacheUrl[clave];
+  }
+  function imgPx(src, w, h, clase) {
+    const i = document.createElement("img");
+    i.className = clase || "retrato-px";
+    i.alt = "";
+    i.width = w; i.height = h;
+    i.decoding = "async";
+    i.draggable = false;
+    i.src = src;
+    return i;
+  }
+
   // Solo la cabeza (para la barra superior y los diálogos)
   function cara(pj, escala) {
     if (typeof pj === "string") pj = { id: pj };
-    const cuerpo = personaje(pj, "abajo", 1).c;
-    const l = lienzo(16, 13);
-    l.x.drawImage(cuerpo, 0, 0, 16, 13, 0, 0, 16, 13);
-    const c = escalar(l.c, escala || 2);
-    c.className = "retrato-px";
-    return c;
+    const e = escala || 2;
+    return imgPx(urlDe("cara-" + pj.id + "@" + e, () => {
+      const l = lienzo(16, 13);
+      l.x.drawImage(personaje(pj, "abajo", 1).c, 0, 0, 16, 13, 0, 0, 16, 13);
+      return escalar(l.c, e);
+    }), 16 * e, 13 * e);
   }
 
   // Escena del menú: los tres personajes sobre el pasto
   function escenaMenu(pjs, escala) {
+    const e = escala || 3;
+    return imgPx(urlDe("escena@" + e + (pjs || []).map((p) => p.id).join(","), () => escenaMenuCanvas(pjs, e)), 78 * e, 34 * e);
+  }
+  function escenaMenuCanvas(pjs, escala) {
     const l = lienzo(78, 34);
     l.elipse(39, 30, 38, 3, "#55963f"); l.elipse(39, 29, 36, 2, "#6cb24f");
     [[6, 2], [52, 4], [30, 1], [70, 3], [16, 3]].forEach(([fx, k]) => { l.p(fx, 28, ["#e85d75", "#f2c14e", "#ffffff", "#9b6ad6"][k % 4]); l.p(fx, 29, "#3f7d3a"); });
@@ -346,9 +367,8 @@ const Pixel = (function () {
 
   // Retrato para la interfaz (personaje de frente, ampliado)
   function retrato(pj, escala) {
-    const c = escalar(personaje(pj, "abajo", 1).c, escala || 3);
-    c.className = "retrato-px";
-    return c;
+    const e = escala || 3;
+    return imgPx(urlDe("retrato-" + pj.id + "@" + e, () => escalar(personaje(pj, "abajo", 1).c, e)), 18 * e, 24 * e);
   }
 
   /* ------------------------------ íconos ------------------------------ */
@@ -410,11 +430,14 @@ const Pixel = (function () {
   }
   // Devuelve una <img> lista para insertar en la interfaz
   function icono(nombre, escala, clase) {
-    const c = iconoCanvas(nombre, escala || 2);
+    const e = escala || 2;
+    const c = iconoCanvas(nombre, e);
     const img = document.createElement("img");
     img.className = "ico-px" + (clase ? " " + clase : "");
     img.alt = "";
-    if (c) img.src = c.toDataURL();
+    img.decoding = "async";
+    img.draggable = false;
+    if (c) { img.width = c.width; img.height = c.height; img.src = urlDe("ico-" + nombre + "@" + e, () => c); }
     return img;
   }
 

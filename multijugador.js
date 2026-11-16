@@ -1,11 +1,12 @@
 /* ==========================================================================
    MULTIJUGADOR EN EL MAPA
    Hasta 3 jugadores en el mismo pueblo, cada uno con un personaje distinto.
-   Compiten por completar los procesos (contenido.js → multijugador.procesos)
-   respondiendo preguntas: cuenta el acierto y la rapidez. Al final, podio.
+   Se juega por años, como el modo individual: cada uno hace las tareas de su
+   año (contenido.js → multijugador.tareasPorAnio) y, al terminar, espera a que
+   todos terminen para pasar juntos al año siguiente. Al final, podio.
 
    La conexión entre celulares usa red.js (Supabase Realtime, ver config.js).
-   No hace falta editar este archivo para cambiar preguntas o procesos.
+   No hace falta editar este archivo para cambiar preguntas o tareas.
    ========================================================================== */
 
 (function () {
@@ -13,6 +14,7 @@
   const M = C.multijugador;
   const T = MAPA.tam;
   const IND = Object.keys(C.indicadores);
+  const ANIOS = C.aniosDeJuego || M.tareasPorAnio.length;
   const $ = (id) => document.getElementById(id);
   const PREFIJO = "carrera-mapa-";
   const MEDALLAS = ["medalla1", "medalla2", "medalla3"];
@@ -27,16 +29,25 @@
   const leer = (k) => { try { return JSON.parse(sessionStorage.getItem(k)); } catch (e) { return null; } };
   const nombreGuardado = (() => { try { return localStorage.getItem("cd-nombre") || ""; } catch (e) { return ""; } })();
 
+  // fase: inicio | sala | tarde (pidiendo entrar) | juego | espera (terminó el año) | fin
   const yo = {
     id: "j" + Math.random().toString(36).slice(2, 10),
     nombre: nombreGuardado, sala: null, anf: false, unido: 0, pj: null,
-    x: 9, y: 22, dir: "arriba", proc: 0, puntos: 0, bonoOp: 0, oportunidad: null,
-    aciertos: 0, termino: false, tiempo: 0, fase: "inicio", ind: null, cartasTomadas: [], hechas: []
+    x: 9, y: 22, dir: "arriba", fase: "inicio", ind: null
   };
-  const otros = {};        // id → último estado recibido de cada jugador
+  function datosPartida() {
+    return {
+      anio: 1, hecho: {}, cartasTomadas: [], evidencias: [], terminoAnio: 0, tiempos: {}, evaluaciones: {},
+      puntos: 0, ptsPreguntas: 0, ptsEval: 0, bonoOp: 0, aciertos: 0, oportunidad: null, usadas: {}, hechas: []
+    };
+  }
+  Object.assign(yo, datosPartida());
+
+  const otros = {};          // id → último estado recibido de cada jugador
   const salidos = new Set(); // jugadores que se salieron de la partida
+  const forzados = {};       // años que el anfitrión pasó sin esperar
   let red = null;
-  let partida = null;      // { semilla, ids, nombres, t0, plan }
+  let partida = null;        // { semilla, ids, nombres, t0, inicioAnio }
   let pueblo = null;
   let interiorAbierto = false;
   let jugando = false;
@@ -44,7 +55,8 @@
   let respuestasConcurso = {};
   let relojPregunta = null;
   let panelActual = null;
-  let entradaTarde = null;  // { ini, intentos, t } mientras se pide entrar a una partida ya empezada
+  let entradaTarde = null;   // { ini, intentos } mientras se pide entrar a una partida ya empezada
+  let esperaDesde = 0;
 
   /* ============================ utilidades ============================ */
 
@@ -61,18 +73,13 @@
     hijos.forEach((h) => { if (h !== null && h !== undefined && h !== false) n.append(typeof h === "object" ? h : document.createTextNode(String(h))); });
     return n;
   }
-  // Botón que solo responde al primer toque (evita dobles toques en el celular)
-  function botonUnaVez(texto, clase, fn) {
-    const b = nodo("button", clase || "btn-opcion", texto);
-    b.onclick = () => { if (b.dataset.usado) return; b.dataset.usado = "1"; b.disabled = true; fn(); };
-    return b;
-  }
   const pjDe = (id) => C.personajes.find((p) => p.id === id);
   const escribiendo = () => { const a = document.activeElement; return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"); };
   const NOMBRES = { secretaria: "la Secretaría", colegio: "el Colegio", universidad: "la Universidad", rectoria: "la Rectoría" };
   const nombreEdificio = (id) => NOMBRES[id] || MAPA.edificios.find((e) => e.id === id).etiqueta;
   const mmss = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   const azarConSemilla = Pixel.azar;
+  const temaDe = (anio) => (C.anios || []).find((t) => t.anio === anio);
 
   let tAviso;
   function aviso(msg, icono) {
@@ -82,7 +89,7 @@
     el.append(nodo("span", "", msg));
     el.classList.add("visible");
     clearTimeout(tAviso);
-    tAviso = setTimeout(() => el.classList.remove("visible"), 2600);
+    tAviso = setTimeout(() => el.classList.remove("visible"), 2800);
   }
 
   function mostrarPantalla(visible) { $("mj-pantalla").classList.toggle("oculto", !visible); }
@@ -97,41 +104,33 @@
     return c;
   }
 
-  /* ============================ preguntas ============================ */
+  /* ============================ tareas del año ============================ */
 
-  // Plan de preguntas de la partida: sale de la semilla, así todos reciben las
-  // mismas preguntas en el mismo orden (sin repetir dentro de cada banco).
-  // Cada jugador tiene sus propias preguntas (sale de la semilla y de su id)
-  function hashTexto(t) { let h = 2166136261; for (const ch of String(t)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
-  function planPreguntas(semilla) {
-    const rnd = azarConSemilla((semilla ^ 0x5bd1e995 ^ hashTexto(yo.id)) >>> 0);
-    const usadas = {};
-    return M.procesos.map((p) => p.preguntas.map((banco) => {
-      const it = Comun.sacar(banco, (usadas[banco] = usadas[banco] || []), p.concurso ? 1 : null, rnd);
-      return it ? { banco, indice: it.indice } : { banco, indice: -1 };
-    }));
+  const tareasDelAnio = (anio) => M.tareasPorAnio[Math.min(Math.max(anio, 1), M.tareasPorAnio.length) - 1] || [];
+  const infoTarea = (t) => (M.tareas && M.tareas[t]) || { nombre: t };
+  function hecha(t) {
+    if (t === "cartas") return yo.cartasTomadas.length >= M.cartasPorAnio;
+    return !!yo.hecho[t];
   }
-
-  const QUIEN = {
-    aptitudes: ["Prueba de aptitudes", "funcionaria"], psicotecnica: ["Prueba psicotécnica", "funcionaria"],
-    entrevista: ["Jurado de la entrevista", "jurado"], estatuto: ["Pregunta del estatuto", "funcionaria"]
-  };
-  function elemento(ref) {
-    const item = Comun.item(ref.banco, ref.indice);
-    const situacion = !!(item && item.opciones && item.opciones.some((o) => o.efectos));
-    let quien = QUIEN[ref.banco] || [null, "funcionaria"];
-    if (ref.banco === "colegio" && item) quien = [item.personaje, "estudiante"];
-    if (ref.banco === "cartas" && item) quien = ["Carta " + (item.tipo || "").toLowerCase(), "funcionaria"];
-    return { item, situacion, quien: quien[0], npc: quien[1] };
+  function tareaActual() { return tareasDelAnio(yo.anio).find((t) => !hecha(t)) || null; }
+  function progresoAnio() { const ts = tareasDelAnio(yo.anio); return [ts.filter(hecha).length, ts.length]; }
+  // Las cartas del año aparecen desde el principio (el primer año, después del concurso)
+  function cartasDisponibles() {
+    const ts = tareasDelAnio(yo.anio);
+    return ts.includes("cartas") && (!ts.includes("concurso") || !!yo.hecho.concurso);
   }
 
   /* ============================ red ============================ */
 
   function estadoPublico() {
+    const [k, n] = partida ? progresoAnio() : [0, 0];
     return {
       t: "j", id: yo.id, nombre: yo.nombre, pj: yo.pj, anf: yo.anf, unido: yo.unido,
-      x: yo.x, y: yo.y, dir: yo.dir, proc: yo.proc, puntos: yo.puntos, bonoOp: yo.bonoOp,
-      oportunidad: yo.oportunidad, aciertos: yo.aciertos, termino: yo.termino, tiempo: yo.tiempo, fase: yo.fase,
+      x: yo.x, y: yo.y, dir: yo.dir, fase: yo.fase,
+      anio: yo.anio, terminoAnio: yo.terminoAnio, tiempos: yo.tiempos, evaluaciones: yo.evaluaciones,
+      puntos: yo.puntos, ptsPreguntas: yo.ptsPreguntas, ptsEval: yo.ptsEval, bonoOp: yo.bonoOp,
+      aciertos: yo.aciertos, oportunidad: yo.oportunidad,
+      progreso: [k, n], tarea: partida ? tareaActual() : null,
       panel: panelActual,          // edificio o carta donde está respondiendo (para que los demás lo vean)
       // datos de la partida, por si a alguien no le llegó el aviso de inicio
       ini: partida ? { semilla: partida.semilla, ids: partida.ids, nombres: partida.nombres } : null
@@ -155,6 +154,7 @@
   }
 
   const enSalaOTarde = () => yo.fase === "sala" || yo.fase === "tarde";
+  const enPartida = (f) => f === "juego" || f === "espera" || f === "fin";
   const mismaPartida = (ini) => partida && ini && ini.semilla === partida.semilla;
 
   function recibir(m) {
@@ -163,13 +163,17 @@
       const nuevo = !otros[m.id];
       otros[m.id] = Object.assign(otros[m.id] || {}, m, { visto: Date.now() });
       if (nuevo) enviarEstado();
-      if (enSalaOTarde() && m.ini && m.ini.ids.includes(yo.id) && (m.fase === "juego" || m.fase === "fin")) { iniciarPartida(m.ini); return; }
+      if (enSalaOTarde() && m.ini && m.ini.ids.includes(yo.id) && enPartida(m.fase)) { iniciarPartida(m.ini); return; }
       if (mismaPartida(m.ini)) unirIds(m.ini);
       resolverConflictoPersonaje();
       if (yo.fase === "sala") pantallaSala();
       if (yo.fase === "tarde") pantallaUnirseTarde();
-      if (jugando || yo.fase === "fin") { if (pueblo) pueblo.actualizarOtro(otros[m.id]); actualizarHud(); revisarFin(); }
-      if (yo.fase === "fin" && !podioMostrado) pantallaEspera();
+      if (partida && enPartida(yo.fase)) {
+        if (pueblo) pueblo.actualizarOtro(otros[m.id]);
+        actualizarHud();
+        revisarAvance();
+        if (podioMostrado) mostrarPodio(true);
+      }
     } else if (m.t === "hola") {
       enviarEstado();
     } else if (m.t === "inicio") {
@@ -179,6 +183,8 @@
       atenderPedido(m);
     } else if (m.t === "rechazo") {
       if (m.para === yo.id && yo.fase === "tarde") { entradaTarde = null; pantallaUnirseTarde(m.motivo); }
+    } else if (m.t === "forzar") {
+      if (partida && partida.ids.includes(m.id)) forzarAnio(m.anio, m.nombre);
     } else if (m.t === "cancelar") {
       if (partida && partida.ids.includes(m.id)) volverASala(`${m.nombre || "El anfitrión"} canceló la partida. ¡Pueden empezar otra!`);
     } else if (m.t === "fin") {
@@ -188,7 +194,7 @@
       delete otros[m.id];
       if (pueblo) pueblo.quitarOtro(m.id);
       if (yo.fase === "sala") pantallaSala();
-      revisarFin();
+      revisarAvance();
     }
   }
 
@@ -203,7 +209,7 @@
   // Quien coordina la partida: el primero de la lista que siga conectado
   function coordinador() {
     if (!partida) return null;
-    return partida.ids.find((id) => id === yo.id || (otros[id] && conectado(otros[id])));
+    return partida.ids.find((id) => id === yo.id || (otros[id] && conectado(otros[id]) && !salidos.has(id)));
   }
   function reenviarInicio() {
     if (!partida || !red) return;
@@ -244,7 +250,7 @@
 
   function guardarProgreso() {
     if (!partida || !yo.sala) return;
-    guardar("cd-mj", { yo, partida: { semilla: partida.semilla, ids: partida.ids, nombres: partida.nombres, transcurrido: Date.now() - partida.t0 } });
+    guardar("cd-mj", { yo, partida: { semilla: partida.semilla, ids: partida.ids, nombres: partida.nombres, transcurrido: Date.now() - partida.t0, enAnio: Date.now() - partida.inicioAnio } });
   }
 
   /* ============================ pantallas de sala ============================ */
@@ -259,7 +265,7 @@
     c.append(esc);
     c.append(nodo("h1", "", "Multijugador"));
     c.append(nodo("div", "indicacion", C.introduccion.indicacion));
-    c.append(nodo("p", "suave centrado", `Hasta ${M.maxJugadores} jugadores en el mismo pueblo. Cada uno elige un personaje y compiten por completar los procesos del estatuto: gana quien responda mejor y más rápido.`));
+    c.append(nodo("p", "suave centrado", `Hasta ${M.maxJugadores} jugadores en el mismo pueblo viven ${ANIOS} años de carrera docente al mismo tiempo. Cada año hacen sus tareas y, al terminar, esperan a los demás. Gana quien decida mejor y más rápido.`));
     if (mensaje) c.append(nodo("div", "alerta", mensaje));
     if (Red.modo() !== "supabase") c.append(nodo("div", "alerta", "Sin servidor configurado en config.js: solo funciona entre pestañas de este mismo navegador."));
 
@@ -338,7 +344,7 @@
     const lista = enSala();
     const pos = lista.findIndex((j) => j.id === yo.id);
     if (pos >= M.maxJugadores) { salirSala(); return pantallaInicio(`La sala ${yo.sala} ya tiene ${M.maxJugadores} jugadores.`); }
-    const enCurso = Object.values(otros).find((o) => conectado(o) && o.fase === "juego" && o.ini && !o.ini.ids.includes(yo.id));
+    const enCurso = Object.values(otros).find((o) => conectado(o) && (o.fase === "juego" || o.fase === "espera") && o.ini && !o.ini.ids.includes(yo.id));
     if (enCurso) {
       // La partida empezó sin este jugador: si ya tenía un personaje libre, entra solo
       yo.fase = "tarde";
@@ -442,6 +448,7 @@
     iniciarPartida(m);
   }
 
+
   /* ============================ partida ============================ */
 
   function iniciarPartida(m, restaurar) {
@@ -455,28 +462,41 @@
     }
     clearTimeout(vigiaSala);
     if (entradaTarde) { clearTimeout(entradaTarde.timer); entradaTarde = null; }
+    const tarde = !restaurar && Object.values(otros).some((o) => m.ids.includes(o.id) && conectado(o) && (o.fase === "juego" || o.fase === "espera") && o.anio);
     salidos.clear();
-    partida = { semilla: m.semilla, ids: m.ids.slice(), nombres: Object.assign({}, m.nombres), t0: Date.now() - (restaurar ? restaurar.transcurrido : 0), plan: planPreguntas(m.semilla) };
+    partida = {
+      semilla: m.semilla, ids: m.ids.slice(), nombres: Object.assign({}, m.nombres),
+      t0: Date.now() - (restaurar ? restaurar.transcurrido : 0),
+      inicioAnio: Date.now() - (restaurar ? restaurar.enAnio || 0 : 0)
+    };
     if (!restaurar) {
       const ini = INICIOS[m.ids.indexOf(yo.id)] || INICIOS[0];
-      Object.assign(yo, { fase: "juego", proc: 0, puntos: 0, bonoOp: 0, oportunidad: null, aciertos: 0, termino: false, tiempo: 0, x: ini.x, y: ini.y, dir: "arriba", cartasTomadas: [], hechas: [] });
+      Object.assign(yo, datosPartida(), { fase: "juego", x: ini.x, y: ini.y, dir: "arriba" });
       yo.ind = Object.assign({}, pjDe(yo.pj).indicadores);
+      // Si entra tarde, empieza en el año en que van los demás
+      if (tarde) {
+        const anios = Object.values(otros).filter((o) => m.ids.includes(o.id) && conectado(o) && o.anio).map((o) => o.anio);
+        yo.anio = Math.max(1, Math.min(...anios));
+        yo.terminoAnio = yo.anio - 1;
+      }
     }
     respuestasConcurso = {};
     mostrarPantalla(false);
     $("hud").classList.remove("oculto");
-    jugando = yo.fase === "juego";
+    jugando = yo.fase === "juego" || yo.fase === "espera";
     if (pueblo) pueblo.empezar();
     actualizarHud();
     enviarEstado();
-    if (jugando) aviso("¡Arranca la carrera! Toca el mapa para caminar", "llegada");
-    else pantallaEspera();
+    if (yo.fase === "fin") { mostrarPodio(); return; }
+    if (yo.fase === "espera") { esperaDesde = Date.now(); actualizarEspera(); revisarAvance(); return; }
+    const tema = temaDe(yo.anio);
+    aviso(`¡Arranca la carrera! Año ${yo.anio}` + (tema ? `: ${tema.tema}` : ""), "llegada");
   }
 
   /* ----------------- entrar a una partida que ya empezó ----------------- */
 
   function partidaEnCurso() {
-    const o = Object.values(otros).find((x) => conectado(x) && (x.fase === "juego" || x.fase === "fin") && x.ini);
+    const o = Object.values(otros).find((x) => conectado(x) && enPartida(x.fase) && x.ini);
     return o ? o.ini : (entradaTarde && entradaTarde.ini) || null;
   }
 
@@ -537,23 +557,26 @@
     pantallaUnirseTarde();
   }
 
+
   /* ----------------- cancelar, salir y volver a la sala ----------------- */
 
   function limpiarPartida() {
     clearInterval(relojPregunta);
     $("interior").classList.add("oculto");
     interiorAbierto = false;
+    dormirMapa(false);
     panelActual = null;
     partida = null;
     podioMostrado = false;
     jugando = false;
-    procesoCerrado = -1;
     respuestasConcurso = {};
     hudDe = null;
     salidos.clear();
+    Object.keys(forzados).forEach((k) => delete forzados[k]);
     try { sessionStorage.removeItem("cd-mj"); } catch (e) { /* nada */ }
-    Object.assign(yo, { proc: 0, puntos: 0, bonoOp: 0, oportunidad: null, aciertos: 0, termino: false, tiempo: 0, cartasTomadas: [], hechas: [] });
+    Object.assign(yo, datosPartida());
     $("hud").classList.add("oculto");
+    ocultarEspera();
     if (pueblo) pueblo.reiniciarTodo();
   }
 
@@ -585,7 +608,10 @@
     if (!confirmar) {
       c.append(boton("Seguir jugando", "btn-principal btn-grande", cerrarMenu));
       c.append(boton("Salir de la partida", "btn-secundario", () => menuPartida("salir")));
-      if (soyCoordinador()) c.append(boton("Cancelar la partida para todos", "btn-secundario", () => menuPartida("cancelar")));
+      if (soyCoordinador()) {
+        c.append(boton("Terminar ya y ver el podio", "btn-secundario", () => menuPartida("terminar")));
+        c.append(boton("Cancelar la partida para todos", "btn-secundario", () => menuPartida("cancelar")));
+      }
       c.append(nodo("p", "suave pequeno centrado", soyCoordinador()
         ? "Si cancelas, todos vuelven a la sala de espera y pueden empezar otra partida."
         : "Si sales, puedes crear otra sala o unirte a otra."));
@@ -593,34 +619,58 @@
       c.append(nodo("p", "centrado", "¿Seguro? Saldrás de la partida y perderás tu puntaje."));
       c.append(boton("Sí, salir", "btn-principal", salirDePartida));
       c.append(boton("No, seguir jugando", "btn-secundario", cerrarMenu));
+    } else if (confirmar === "terminar") {
+      c.append(nodo("p", "centrado", "¿Seguro? La partida termina para todos con los puntos que lleven ahora."));
+      c.append(boton("Sí, ver el podio", "btn-principal", () => { if (red) red.enviar({ t: "fin", id: yo.id }); mostrarPodio(); }));
+      c.append(boton("No, seguir jugando", "btn-secundario", cerrarMenu));
     } else {
       c.append(nodo("p", "centrado", "¿Seguro? Se termina la partida para todos y vuelven a la sala de espera."));
       c.append(boton("Sí, cancelar la partida", "btn-principal", () => cancelarParaTodos()));
       c.append(boton("No, seguir jugando", "btn-secundario", cerrarMenu));
     }
   }
-  function cerrarMenu() {
-    if (yo.fase === "fin" && !podioMostrado) return pantallaEspera();
-    mostrarPantalla(false);
-  }
+  function cerrarMenu() { mostrarPantalla(false); }
 
-  function procesoActual() { return M.procesos[yo.proc]; }
-
-  function objetivoTexto() {
-    const p = procesoActual();
-    if (!p) return "¡Terminaste todos los procesos!";
-    if (p.tipo === "cartas") return `Recoge las cartas (${p.preguntas.length - yo.cartasTomadas.length}) · ${p.nombre}`;
-    return `Ve a ${nombreEdificio(p.edificio)}: ${p.nombre}`;
-  }
+  /* ============================== puntajes ============================== */
 
   function jugadoresPartida() {
     if (!partida) return [];
-    return partida.ids.map((id) => (id === yo.id ? Object.assign(estadoPublico(), { visto: Date.now() }) : otros[id]))
-      .filter(Boolean)
-      .map((j) => Object.assign({}, j, { nombre: j.nombre || partida.nombres[j.id] }));
+    return partida.ids.map((id) => (id === yo.id ? estadoPublico() : otros[id])).filter(Boolean);
   }
+  // Los que siguen jugando (conectados y que no se han salido)
+  function jugadoresActivos() {
+    return jugadoresPartida().filter((j) => j.id === yo.id || (conectado(j) && !salidos.has(j.id)));
+  }
+  // Puntos por orden de llegada: cada año, el más rápido en terminarlo gana más
+  function llegadaDe(id) {
+    const lista = jugadoresPartida().filter((j) => !salidos.has(j.id));
+    let total = 0;
+    for (let a = 1; a <= ANIOS; a++) {
+      const con = lista.filter((j) => j.tiempos && typeof j.tiempos[a] === "number").sort((p, q) => p.tiempos[a] - q.tiempos[a]);
+      const pos = con.findIndex((j) => j.id === id);
+      if (pos >= 0) total += M.bonoLlegadaAnio[pos] || 0;
+    }
+    return total;
+  }
+  const totalDe = (j) => (j.puntos || 0) + llegadaDe(j.id);
+
+  /* ================================ HUD ================================ */
 
   let hudDe = null;
+  function textoEstado(j) {
+    if (j.fase === "fin" || j.fase === "espera") return "listo";
+    const p = j.progreso || [0, 0];
+    return `${p[0]}/${p[1]}`;
+  }
+  function objetivoTexto() {
+    if (yo.fase === "fin") return `¡Terminaste los ${ANIOS} años!`;
+    if (yo.fase === "espera") return `Terminaste el año ${yo.anio}: espera a que los demás terminen`;
+    const t = tareaActual();
+    if (!t) return "";
+    if (t === "cartas") return `Año ${yo.anio} · Busca las cartas del año (${M.cartasPorAnio - yo.cartasTomadas.length} por encontrar)`;
+    const info = infoTarea(t);
+    return `Año ${yo.anio} · ${info.nombre} en ${nombreEdificio(info.edificio)}`;
+  }
   function actualizarHud() {
     if (!partida) return;
     if (hudDe !== yo.pj && yo.pj) {
@@ -629,40 +679,53 @@
       $("hud-avatar").append(Pixel.cara(pjDe(yo.pj), 3));
     }
     $("hud-objetivo").textContent = objetivoTexto();
-    $("hud-puntos-t").textContent = `${yo.puntos} pts`;
-    $("hud-proceso-t").textContent = `${Math.min(yo.proc + 1, M.procesos.length)}/${M.procesos.length}` + (yo.termino ? " listo" : "");
-    $("hud-reloj-t").textContent = mmss(yo.termino ? yo.tiempo : Date.now() - partida.t0);
+    $("hud-puntos-t").textContent = `${totalDe(estadoPublico())} pts`;
+    $("hud-anio-t").textContent = `Año ${Math.min(yo.anio, ANIOS)}/${ANIOS}`;
+    const [k, n] = progresoAnio();
+    $("hud-proceso-t").textContent = yo.fase === "juego" ? `${k}/${n}` : "listo";
+    $("hud-reloj-t").textContent = mmss(yo.fase === "juego" ? Date.now() - partida.inicioAnio : (yo.tiempos[yo.anio] || 0));
     const rk = $("hud-ranking");
     rk.innerHTML = "";
-    jugadoresPartida().sort((a, b) => b.puntos - a.puntos).forEach((j, i) => {
+    jugadoresPartida().filter((j) => !salidos.has(j.id)).sort((a, b) => totalDe(b) - totalDe(a)).forEach((j, i) => {
       const p = pjDe(j.pj);
-      const ch = nodo("span", "chip rk" + (j.id === yo.id ? " yo" : "") + (conectado(j) ? "" : " fuera"));
+      const ch = nodo("span", "chip rk" + (j.id === yo.id ? " yo" : "") + (j.id === yo.id || conectado(j) ? "" : " fuera"));
       if (MEDALLAS[i]) ch.append(ico(MEDALLAS[i]));
       if (p) ch.append(Pixel.cara(p, 1));
-      ch.append(nodo("span", "", `${j.nombre} ${j.puntos} · ${j.termino ? "listo" : Math.min(j.proc + 1, M.procesos.length) + "/" + M.procesos.length}`));
+      ch.append(nodo("span", "", `${String(j.nombre).split(" ")[0]} ${totalDe(j)} · ${textoEstado(j)}`));
       rk.append(ch);
     });
   }
 
+  // Latido: los demás saben que sigues aquí; también revisa si ya todos terminaron el año
   setInterval(() => {
     if (yo.fase === "sala" || yo.fase === "tarde") {
-      enviarEstado();                                   // latido: los demás saben que sigues aquí
+      enviarEstado();
       if (yo.fase === "sala") pantallaSala(); else pantallaUnirseTarde();
     }
     if (!partida) return;
     actualizarHud();
-    if (jugando || yo.fase === "fin") enviarEstado();     // latido
-    if (pueblo) Object.values(otros).forEach((o) => { if (!conectado(o)) pueblo.quitarOtro(o.id); });
+    enviarEstado();
+    revisarAvance();
+    if (yo.fase === "espera") actualizarEspera();
     if (!podioMostrado && Date.now() - partida.t0 > M.duracionMaximaMin * 60000) {
+      aviso("Se acabó el tiempo de la partida", "reloj");
       mostrarPodio();
     }
-    revisarFin();
   }, 2500);
 
-  /* -------------------------- panel de procesos -------------------------- */
+  /* -------------------------- paneles (edificios) -------------------------- */
+
+  // Mientras hay un panel abierto el mapa no se ve: se pausa para que el celular vaya fluido
+  function dormirMapa(si) {
+    const g = window.juego;
+    if (!g || !g.loop) return;
+    if (si && g.loop.running) g.loop.sleep();
+    else if (!si && !g.loop.running) g.loop.wake(true);
+  }
 
   function abrirPanel(icono, nombre, sub) {
     interiorAbierto = true;
+    setTimeout(() => { if (interiorAbierto) dormirMapa(true); }, 30);
     panelActual = icono;
     $("aviso").classList.remove("visible");
     $("int-icono").innerHTML = "";
@@ -670,6 +733,7 @@
     $("int-nombre").textContent = nombre;
     $("int-arts").textContent = sub || "";
     $("interior").classList.remove("oculto");
+    enviarEstado();
     return limpiarCuerpo();
   }
   function limpiarCuerpo() { const c = $("int-cuerpo"); c.innerHTML = ""; c.scrollTop = 0; $("int-pie").innerHTML = ""; return c; }
@@ -688,60 +752,88 @@
     clearInterval(relojPregunta);
     $("interior").classList.add("oculto");
     interiorAbierto = false;
+    dormirMapa(false);
     if (panelActual) { panelActual = null; if (partida) enviarEstado(); }
     actualizarHud();
     if (pueblo) pueblo.actualizarMarcadores();
   }
 
   function entrarEdificio(id) {
-    if (!jugando || interiorAbierto) return;
-    const p = procesoActual();
-    if (!p) return aviso("Ya terminaste todos los procesos", "check");
-    if (p.tipo === "cartas") return aviso(`Primero recoge las cartas del mapa (${p.preguntas.length - yo.cartasTomadas.length})`, "carta");
-    if (p.edificio !== id) return aviso(`Ahora te toca: ${p.nombre} en ${nombreEdificio(p.edificio)}`, "candado");
-    abrirPanel(id, p.nombre, `Proceso ${yo.proc + 1} de ${M.procesos.length} · ${p.articulos || ""}`);
-    if (p.concurso) estructuraConcurso(p);
-    else preguntaDeProceso(p, 0);
+    if (!jugando || interiorAbierto || !partida) return;
+    if (yo.fase === "espera") return aviso(`Ya terminaste el año ${yo.anio}: espera a los demás`, "reloj");
+    const t = tareaActual();
+    if (!t) return;
+    if (t === "cartas") return aviso(`Primero busca las cartas del año (${M.cartasPorAnio - yo.cartasTomadas.length} por encontrar)`, "carta");
+    const info = infoTarea(t);
+    if (info.edificio !== id) return aviso(`Ahora te toca: ${info.nombre} en ${nombreEdificio(info.edificio)}`, "candado");
+    abrirPanel(id, info.nombre, `Año ${yo.anio} de ${ANIOS}` + (info.articulos ? ` · ${info.articulos}` : ""));
+    hacerTarea(t);
   }
 
-  // Antes de las pruebas del concurso: las cuatro etapas (texto del grupo)
-  function estructuraConcurso(p) {
-    const K = C.concurso, est = C.introduccion.estructura;
-    const orden = K.orden || K.pruebas.map((x) => x.id).concat("antecedentes");
-    const peso = (id) => (id === "antecedentes" ? K.pesoAntecedentes : (K.pruebas.find((x) => x.id === id) || {}).peso || 0);
-    const c = limpiarCuerpo();
-    c.append(con("div", "personaje", Pixel.cara("funcionaria", 2), "Funcionaria de la Secretaría"));
-    c.append(nodo("div", "globo", C.introduccion.concurso.texto));
-    c.append(nodo("h3", "", est.titulo));
-    c.append(nodo("p", "", est.texto));
-    const ol = nodo("ol", "etapas");
-    orden.forEach((id, i) => {
-      const et = est.etapas[i] || {};
-      ol.append(con("li", "", con("div", "", con("b", "", et.nombre || id), ": " + (et.descripcion || ""), " ", nodo("span", "peso", Math.round(peso(id) * 100) + "%"))));
+  function hacerTarea(t) {
+    if (t === "concurso") return estructuraConcurso();
+    if (t === "evaluacion") return evaluacionAnual();
+    const banco = t === "colegio" ? "colegio" : t;
+    const item = Comun.sacar(banco, (yo.usadas[banco] = yo.usadas[banco] || []), null, Math.random, yo.anio);
+    const nombre = infoTarea(t).nombre;
+    jugarPregunta(item, banco, 1, 1, nombre, () => { yo.hecho[t] = true; tareaHecha(nombre); }, "Volver al mapa");
+  }
+
+  // Al completar una tarea: guardar, avisar y, si toca, aparecer las cartas
+  function tareaHecha(nombre) {
+    cerrarPanel();
+    enviarEstado();
+    if (pueblo && cartasDisponibles() && !pueblo.cartas.length) pueblo.generarCartas();
+    const t = tareaActual();
+    if (t) aviso(`${nombre}: ¡listo! Ahora: ${t === "cartas" ? "busca las cartas del año" : infoTarea(t).nombre}`, "check");
+    actualizarHud();
+    if (pueblo) pueblo.actualizarMarcadores();
+  }
+
+  /* --------------------------- preguntas con tiempo --------------------------- */
+
+  const QUIEN = {
+    aptitudes: ["Prueba de aptitudes", "funcionaria"], psicotecnica: ["Prueba psicotécnica", "funcionaria"],
+    entrevista: ["Jurado de la entrevista", "jurado"], universidad: ["Asesora de posgrados", "asesora"],
+    secretaria: ["Oficina de escalafón", "funcionaria"]
+  };
+
+  function chipsEfectos(cambios) {
+    const cont = nodo("div", "efectos");
+    cambios.forEach(({ k, d }) => cont.append(con("span", "efecto " + (d > 0 ? "positivo" : "negativo"), ico(k), `${d > 0 ? "+" : ""}${d} ${C.indicadores[k].nombre}`)));
+    return cont;
+  }
+  function aplicar(efectos) {
+    const cambios = [];
+    Object.entries(efectos || {}).forEach(([k, d]) => {
+      if (!yo.ind || !(k in yo.ind) || !d) return;
+      const antes = yo.ind[k];
+      yo.ind[k] = lim(antes + d);
+      if (yo.ind[k] !== antes) cambios.push({ k, d: yo.ind[k] - antes });
     });
-    c.append(ol);
-    c.append(nodo("p", "suave pequeno", `Responde rápido: cada pregunta tiene ${M.segundosPorPregunta} segundos. La valoración de antecedentes sale de tu personaje.`));
-    accion("Empezar las pruebas", () => preguntaDeProceso(p, 0));
+    return cambios;
   }
 
-  function preguntaDeProceso(p, i) {
-    if (i >= p.preguntas.length) return finalizarProceso(p);
-    jugarPregunta(partida.plan[yo.proc][i], i + 1, p.preguntas.length, () => preguntaDeProceso(p, i + 1), i + 1 < p.preguntas.length ? "Siguiente pregunta" : "Continuar");
-  }
-
-  function jugarPregunta(ref, numero, total, alTerminar, textoBoton) {
-    const q = elemento(ref);
+  // item: pregunta o situación sacada de un banco. etiqueta: cómo se llama en la carpeta de evidencias
+  function jugarPregunta(item, banco, numero, total, etiqueta, alTerminar, textoBoton) {
     const limite = M.segundosPorPregunta * 1000;
     const inicio = Date.now();
     let respondida = false;
     const c = limpiarCuerpo();
-    if (!q.item) {
-      c.append(nodo("div", "globo", `Todavía no hay preguntas en el banco "${ref.banco}".`));
+    if (!item) {
+      c.append(nodo("div", "globo", `Todavía no hay preguntas en el banco "${banco}".`));
       accion(textoBoton || "Continuar", alTerminar);
       return;
     }
+    const situacion = !!(item.opciones && item.opciones.some((o) => o.efectos));
+    let quien = QUIEN[banco] || [null, "funcionaria"];
+    if (banco === "colegio") quien = [item.personaje, "estudiante"];
+    if (banco === "cartas") quien = ["Carta " + (item.tipo || "").toLowerCase(), "funcionaria"];
+    const dif = item.dificultad || 1;
+    const valorAcierto = M.puntosPorDificultad[dif - 1] || M.puntosPorDificultad[0];
+
     const cab = nodo("div", "pregunta-cabecera");
-    cab.append(nodo("span", "paso", `Pregunta ${numero} de ${total}`));
+    cab.append(con("span", "paso", total > 1 ? `Pregunta ${numero} de ${total}` : (situacion ? "Situación" : "Pregunta"), " ", nodo("span", "nivel nivel-" + dif, Comun.nombreNivel(dif))));
     const reloj = con("span", "reloj-mj", ico("reloj"), nodo("span", "", String(M.segundosPorPregunta)));
     cab.append(reloj);
     c.append(cab);
@@ -749,11 +841,11 @@
     const relleno = nodo("div", "barra-tiempo-relleno");
     barra.append(relleno);
     c.append(barra);
-    if (q.quien) c.append(con("div", "personaje", Pixel.cara(q.npc, 2), q.quien));
-    if (q.item.titulo) c.append(nodo("h3", "titulo-carta", q.item.titulo));
-    c.append(nodo("div", "enunciado", q.item.texto));
-    c.append(nodo("div", "elige", q.situacion ? "¿Qué haces?" : "Elige una respuesta"));
-    const ops = Comun.opciones(q.item, (op) => responder(op));
+    if (quien[0]) c.append(con("div", "personaje", Pixel.cara(quien[1], 2), quien[0]));
+    if (item.titulo) c.append(nodo("h3", "titulo-carta", item.titulo));
+    c.append(nodo("div", "enunciado", item.texto));
+    c.append(nodo("div", "elige", situacion ? "¿Qué haces?" : "Elige una respuesta"));
+    const ops = Comun.opciones(item, (op) => responder(op));
     c.append(ops);
     const ap = Comun.avisoPrueba(); if (ap) c.append(ap);
 
@@ -772,29 +864,30 @@
       clearInterval(relojPregunta);
       const t = Date.now() - inicio;
       const ok = !!op && Comun.esCorrecta(op);
-      const clave = `${yo.proc}:${numero}:${ref.banco}:${ref.indice}`;
+      const clave = `${yo.anio}:${banco}:${item.indice}:${numero}`;
       const repetida = yo.hechas.includes(clave);
       const bono = ok && !repetida ? Math.round(M.bonoRapidez * Math.max(0, (limite - t) / limite)) : 0;
-      const pts = ok && !repetida ? M.puntosAcierto + bono : 0;
-      if (!repetida) { yo.hechas.push(clave); yo.puntos += pts; if (ok) yo.aciertos++; }
+      const pts = ok && !repetida ? valorAcierto + bono : 0;
+      if (!repetida) { yo.hechas.push(clave); yo.puntos += pts; yo.ptsPreguntas += pts; if (ok) yo.aciertos++; }
       let cambios = [];
-      if (q.situacion && op) cambios = aplicar(op.efectos);
-      if (C.concurso.pruebas.some((x) => x.banco === ref.banco)) respuestasConcurso[ref.banco] = op;
+      if (situacion && op) cambios = aplicar(op.efectos);
+      if (situacion) yo.evidencias.push({ nombre: etiqueta || item.titulo || "Situación", bien: op ? ok : false, efectos: op ? op.efectos || {} : {} });
+      if (C.concurso.pruebas.some((x) => x.banco === banco)) respuestasConcurso[banco] = op;
       enviarEstado();
       actualizarHud();
 
       const c2 = limpiarCuerpo();
       const res = nodo("div", "resultado-pregunta " + (op === null ? "neutro" : ok ? "bien" : "mal"));
       res.append(ico(op === null ? "reloj" : ok ? "check" : "cruz", 3));
-      res.append(nodo("div", "rp-titulo", op === null ? "Se acabó el tiempo" : ok ? "¡Correcto!" : "Incorrecto"));
-      res.append(nodo("div", "rp-puntos", ok ? `+${pts} pts (${M.puntosAcierto} + ${bono} por rapidez · ${(t / 1000).toFixed(1)} s)` : "+0 pts"));
+      res.append(nodo("div", "rp-titulo", op === null ? "Se acabó el tiempo" : ok ? (situacion ? "¡Buena decisión!" : "¡Correcto!") : (situacion ? "No fue la mejor decisión" : "Incorrecto")));
+      res.append(nodo("div", "rp-puntos", ok ? `+${pts} pts (${valorAcierto} por ser ${Comun.nombreNivel(dif)} + ${bono} por rapidez · ${(t / 1000).toFixed(1)} s)` : "+0 pts"));
       c2.append(res);
       if (op && !ok) c2.append(nodo("p", "respuesta-elegida", "Tu respuesta: " + op.texto));
-      const cor = Comun.correctaDe(q.item);
+      const cor = Comun.correctaDe(item);
       if (!ok && cor) c2.append(con("div", "globo", "La respuesta correcta: ", con("b", "", cor.texto)));
-      if (q.situacion && op && op.consecuencia) c2.append(nodo("div", "globo", op.consecuencia));
+      if (situacion && op && op.consecuencia) c2.append(nodo("div", "globo", op.consecuencia));
       if (cambios.length) c2.append(chipsEfectos(cambios));
-      const fuente = q.situacion ? (op && (op.articulo || op.explicacion) ? op : cor) : q.item;
+      const fuente = situacion ? (op && (op.articulo || op.explicacion) ? op : cor) : item;
       if (fuente && (fuente.articulo || fuente.explicacion)) {
         const tarjeta = nodo("div", "tarjeta-articulo");
         tarjeta.append(con("div", "art-titulo", ico("articulo"), fuente.articulo || "Estatuto docente"));
@@ -805,29 +898,44 @@
     }
   }
 
-  function aplicar(efectos) {
-    const cambios = [];
-    Object.entries(efectos || {}).forEach(([k, d]) => {
-      if (!(k in yo.ind) || !d) return;
-      const antes = yo.ind[k];
-      yo.ind[k] = lim(antes + d);
-      if (yo.ind[k] !== antes) cambios.push({ k, d: yo.ind[k] - antes });
+  /* ------------------------------ concurso ------------------------------ */
+
+  // Antes de las pruebas: las cuatro etapas (texto del grupo)
+  function estructuraConcurso() {
+    const K = C.concurso, est = C.introduccion.estructura;
+    const orden = K.orden || K.pruebas.map((x) => x.id).concat("antecedentes");
+    const peso = (id) => (id === "antecedentes" ? K.pesoAntecedentes : (K.pruebas.find((x) => x.id === id) || {}).peso || 0);
+    const c = limpiarCuerpo();
+    c.append(con("div", "personaje", Pixel.cara("funcionaria", 2), "Funcionaria de la Secretaría"));
+    c.append(nodo("div", "globo", C.introduccion.concurso.texto));
+    c.append(nodo("h3", "", est.titulo));
+    c.append(nodo("p", "", est.texto));
+    const ol = nodo("ol", "etapas");
+    orden.forEach((id, i) => {
+      const et = est.etapas[i] || {};
+      ol.append(con("li", "", con("div", "", con("b", "", et.nombre || id), ": " + (et.descripcion || ""), " ", nodo("span", "peso", Math.round(peso(id) * 100) + "%"))));
     });
-    return cambios;
-  }
-  function chipsEfectos(cambios) {
-    const cont = nodo("div", "efectos");
-    cambios.forEach(({ k, d }) => {
-      const i = C.indicadores[k];
-      cont.append(con("span", "efecto " + (d > 0 ? "positivo" : "negativo"), ico(k), `${d > 0 ? "+" : ""}${d} ${i.nombre}`));
-    });
-    return cont;
+    c.append(ol);
+    c.append(nodo("p", "suave pequeno", `Responde rápido: cada pregunta tiene ${M.segundosPorPregunta} segundos. La valoración de antecedentes sale de tu personaje.`));
+    respuestasConcurso = {};
+    const pruebas = K.pruebas.map((p) => p.banco);
+    const siguiente = (i) => {
+      if (i >= pruebas.length) return resultadoConcurso();
+      const banco = pruebas[i];
+      const item = Comun.sacar(banco, (yo.usadas[banco] = yo.usadas[banco] || []), null, Math.random, 1);
+      jugarPregunta(item, banco, i + 1, pruebas.length, null, () => siguiente(i + 1), i + 1 < pruebas.length ? "Siguiente prueba" : "Ver resultados");
+    };
+    accion("Empezar las pruebas", () => siguiente(0));
   }
 
   const ICONO_OPORTUNIDAD = { vacante: "check", provisional: "proceso", reemplazo: "reloj", ninguna: "cruz" };
-  function finalizarProceso(p) {
-    if (!p.concurso) return avanzar();
-    // Resultado del concurso: pruebas + antecedentes del personaje → oportunidad laboral
+  function fila(texto, valor, total, icono) {
+    const f = nodo("div", "fila" + (total ? " total" : ""));
+    f.append(icono ? con("span", "fila-ico", ico(icono), texto) : nodo("span", "", texto), nodo("span", "fila-valor", valor));
+    return f;
+  }
+
+  function resultadoConcurso() {
     const K = C.concurso;
     const antecedentes = Math.round((yo.ind.experiencia + yo.ind.formacion) / 2);
     let total = antecedentes * K.pesoAntecedentes;
@@ -845,119 +953,189 @@
     c.append(tabla);
     const op = K.oportunidades.find((o) => total >= o.minimo);
     const bono = M.bonoOportunidad[op.tipo] || 0;
-    if (yo.oportunidad === null) { yo.bonoOp = bono; yo.puntos += bono; yo.oportunidad = op.nombre; }
+    if (!yo.hecho.concurso) { yo.bonoOp = bono; yo.puntos += bono; yo.oportunidad = op.tipo; }
     c.append(con("div", "oportunidad " + op.tipo, ico(ICONO_OPORTUNIDAD[op.tipo]), nodo("div", "oportunidad-titulo", (op.tipo === "ninguna" ? "Sin plaza" : "Oportunidad laboral: " + op.nombre) + ` · +${bono} pts`)));
     const t = nodo("div", "tarjeta-articulo");
     t.append(con("div", "art-titulo", ico("articulo"), op.articulo));
     t.append(nodo("p", "", op.explicacion));
     c.append(t);
-    enviarEstado();
-    actualizarHud();
-    accion("Continuar", avanzar);
+    if (op.tipo === "ninguna") c.append(nodo("p", "suave pequeno", "En el juego sigues adelante como reemplazo para poder vivir toda la carrera, pero en la vida real tendrías que presentarte a otra convocatoria."));
+    accion("Continuar", () => { yo.hecho.concurso = true; tareaHecha(infoTarea("concurso").nombre); });
   }
 
-  function fila(texto, valor, total) {
-    const f = nodo("div", "fila" + (total ? " total" : ""));
-    f.append(nodo("div", "fila-texto", texto), nodo("div", "fila-valor", valor));
-    return f;
+  /* ----------------- evaluación anual (sin preguntas) ----------------- */
+
+  // No es un examen: el rector revisa lo que se hizo durante el año (arts. 32 a 34)
+  function evaluacionAnual() {
+    const A = C.evaluacionAnual;
+    let total = 0;
+    const partes = Object.entries(A.pesos).map(([k, w]) => { const v = yo.ind[k] * w; total += v; return { k, w, v }; });
+    const r = Math.round(total);
+    const prueba = yo.anio === 1 && yo.oportunidad === "vacante";
+    const c = limpiarCuerpo();
+    c.append(con("div", "personaje", Pixel.cara("rector", 2), "Rector"));
+    c.append(nodo("div", "globo", (prueba ? "Terminó tu primer año: esta es la evaluación de tu periodo de prueba." : `Terminó el año ${yo.anio}: esta es tu evaluación anual de desempeño.`) +
+      " No es un examen: reviso lo que hiciste durante el año, como tus clases y las situaciones que resolviste."));
+    // carpeta de evidencias (art. 33)
+    const carpeta = nodo("div", "carpeta");
+    carpeta.append(con("div", "art-titulo", ico("proceso"), "Carpeta de evidencias del año · Art. 33"));
+    if (!yo.evidencias.length) carpeta.append(nodo("p", "suave pequeno", "Este año no hubo situaciones registradas."));
+    else {
+      const ul = nodo("ul", "evidencias");
+      yo.evidencias.forEach((ev) => {
+        const ef = Object.entries(ev.efectos || {}).filter(([, v]) => v).map(([k, v]) => `${v > 0 ? "+" : ""}${v} ${C.indicadores[k] ? C.indicadores[k].nombre.toLowerCase() : k}`).join(", ");
+        ul.append(con("li", "", ico(ev.bien ? "check" : "cruz"), con("span", "", ev.nombre, ef ? nodo("small", "", " · " + ef) : null)));
+      });
+      carpeta.append(ul);
+    }
+    c.append(carpeta);
+    const tabla = nodo("div", "tabla");
+    partes.forEach(({ k, w, v }) => tabla.append(fila(`${C.indicadores[k].nombre}: ${yo.ind[k]} × ${Math.round(w * 100)}%`, v.toFixed(1), false, k)));
+    tabla.append(fila("Resultado", r + "%", true));
+    c.append(tabla);
+    const aprobo = r >= A.minimo;
+    const pts = aprobo ? r : 0;
+    c.append(con("div", "oportunidad " + (aprobo ? "vacante" : "reemplazo"), ico(aprobo ? "check" : "cruz"),
+      nodo("div", "oportunidad-titulo", aprobo ? `Evaluación satisfactoria · +${pts} pts` : `No alcanzaste el ${A.minimo}% · +0 pts`)));
+    const t = nodo("div", "tarjeta-articulo");
+    if (prueba) {
+      t.append(con("div", "art-titulo", ico("articulo"), "Art. 31 · Evaluación del periodo de prueba"));
+      t.append(nodo("p", "", "Al terminar el año escolar se evalúa el periodo de prueba; con 60% o más, el docente queda inscrito en el escalafón."));
+    } else if (aprobo) {
+      t.append(con("div", "art-titulo", ico("articulo"), "Arts. 32 y 33 · Evaluación de desempeño"));
+      t.append(nodo("p", "", "Se hace al terminar cada año escolar y mide el cumplimiento de las funciones con instrumentos como la observación de clases, encuestas a padres y estudiantes y la autoevaluación."));
+    } else {
+      t.append(con("div", "art-titulo", ico("articulo"), "Art. 36 · Resultados de la evaluación"));
+      t.append(nodo("p", "", "Si un docente saca menos de 60% en dos evaluaciones de desempeño seguidas, queda excluido del escalafón y sale del servicio."));
+    }
+    c.append(t);
+    accion(yo.anio >= ANIOS ? "Terminar mi carrera" : `Terminar el año ${yo.anio}`, () => {
+      yo.evaluaciones[yo.anio] = r;
+      yo.ptsEval += pts;
+      yo.puntos += pts;
+      yo.hecho.evaluacion = true;
+      aplicar({ experiencia: C.evaluacionAnual.experienciaPorAnio || 6 });
+      terminarAnio();
+    });
   }
 
-  let procesoCerrado = -1;
-  function avanzar() {
-    if (procesoCerrado === yo.proc) return;
-    procesoCerrado = yo.proc;
-    yo.proc++;
-    yo.cartasTomadas = [];
-    if (pueblo) pueblo.limpiarCartas();   // las cartas del proceso anterior desaparecen del todo
+  /* ---------------------- fin de año y lista de espera ---------------------- */
+
+  function terminarAnio() {
+    yo.terminoAnio = yo.anio;
+    yo.tiempos[yo.anio] = Date.now() - partida.inicioAnio;
+    yo.fase = "espera";
+    esperaDesde = Date.now();
     cerrarPanel();
-    if (yo.proc >= M.procesos.length) return terminar();
-    const p = procesoActual();
-    if (p.tipo === "cartas" && pueblo) pueblo.generarCartas();
-    aviso("Siguiente: " + p.nombre, p.tipo === "cartas" ? "carta" : p.edificio);
+    if (pueblo) pueblo.limpiarCartas();
+    aviso(`¡Terminaste el año ${yo.anio} en ${mmss(yo.tiempos[yo.anio])}! Espera a los demás`, "llegada");
+    enviarEstado();
+    actualizarEspera();
+    revisarAvance();
+  }
+
+  // ¿Ya terminaron todos el año? Entonces todos pasan juntos al siguiente
+  function revisarAvance() {
+    if (!partida || yo.fase !== "espera") return;
+    const n = yo.anio;
+    const faltan = jugadoresActivos().filter((j) => j.id !== yo.id && (j.terminoAnio || 0) < n);
+    if (faltan.length && !forzados[n]) { actualizarEspera(); return; }
+    avanzarAnio();
+  }
+
+  function avanzarAnio() {
+    const n = yo.anio;
+    if (n >= ANIOS) {
+      yo.fase = "fin";
+      jugando = false;
+      enviarEstado();
+      ocultarEspera();
+      mostrarPodio();
+      return;
+    }
+    Object.assign(yo, { anio: n + 1, hecho: {}, cartasTomadas: [], evidencias: [], fase: "juego" });
+    partida.inicioAnio = Date.now();
+    ocultarEspera();
+    if (pueblo) { pueblo.generarCartas(); pueblo.actualizarMarcadores(); }
+    const tema = temaDe(yo.anio);
+    aviso(`¡Comienza el año ${yo.anio}!` + (tema ? ` ${tema.tema}` : ""), "reloj");
     enviarEstado();
     actualizarHud();
   }
+
+  // El anfitrión pasa de año sin esperar (por si alguien se quedó quieto)
+  function forzarAnio(n, quien) {
+    forzados[n] = true;
+    if (partida && yo.fase === "juego" && yo.anio === n) {
+      cerrarPanel();
+      yo.terminoAnio = n;
+      yo.fase = "espera";
+      aviso(`${quien || "El anfitrión"} pasó al año siguiente`, "reloj");
+    }
+    revisarAvance();
+  }
+
+  function actualizarEspera() {
+    const el = $("espera-anio");
+    if (!partida || yo.fase !== "espera") { ocultarEspera(); return; }
+    el.classList.remove("oculto");
+    el.innerHTML = "";
+    el.append(con("div", "espera-titulo", ico("llegada"), `Terminaste el año ${yo.anio} de ${ANIOS}`));
+    const ul = nodo("ul", "espera-lista");
+    jugadoresActivos().forEach((j) => {
+      const listo = (j.terminoAnio || 0) >= yo.anio;
+      const p = j.progreso || [0, 0];
+      const tarea = j.tarea ? (j.tarea === "cartas" ? "buscando cartas" : infoTarea(j.tarea).nombre.toLowerCase()) : "";
+      ul.append(con("li", listo ? "listo" : "", ico(listo ? "check" : "reloj"),
+        nodo("span", "", j.id === yo.id ? "Tú" : j.nombre),
+        nodo("small", "", listo ? (j.tiempos && j.tiempos[yo.anio] ? mmss(j.tiempos[yo.anio]) : "listo") : `${p[0]}/${p[1]} · ${tarea}`)));
+    });
+    el.append(ul);
+    if (soyCoordinador() && Date.now() - esperaDesde > M.esperaParaForzar * 1000) {
+      el.append(boton("Pasar al siguiente año sin esperar", "btn-secundario", () => {
+        if (red) red.enviar({ t: "forzar", id: yo.id, anio: yo.anio, nombre: yo.nombre });
+        forzarAnio(yo.anio, yo.nombre);
+      }));
+    } else {
+      el.append(nodo("p", "espera-nota", "Puedes caminar por el pueblo mientras tanto."));
+    }
+  }
+  function ocultarEspera() { $("espera-anio").classList.add("oculto"); }
+
+  /* ------------------------------ cartas ------------------------------ */
 
   function abrirCarta(carta) {
-    if (interiorAbierto || yo.cartasTomadas.includes(carta.indice)) return;
-    const p = procesoActual();
-    abrirPanel("carta", "Situación inesperada", `${p.nombre} · Carta ${yo.cartasTomadas.length + 1} de ${p.preguntas.length}`);
-    jugarPregunta(carta.ref, yo.cartasTomadas.length + 1, p.preguntas.length, () => {
-      if (!yo.cartasTomadas.includes(carta.indice)) yo.cartasTomadas.push(carta.indice);
-      if (carta.sprite) carta.sprite.destroy();
-      enviarEstado();
-      if (yo.cartasTomadas.length >= p.preguntas.length) avanzar();
-      else { cerrarPanel(); aviso(`Te falta ${p.preguntas.length - yo.cartasTomadas.length} carta`, "carta"); }
-    });
+    if (yo.fase !== "juego" || yo.cartasTomadas.includes(carta.indice)) return;
+    const item = Comun.sacar("cartas", (yo.usadas.cartas = yo.usadas.cartas || []), null, Math.random, yo.anio);
+    abrirPanel("carta", "Situación inesperada", `Año ${yo.anio} · Carta ${yo.cartasTomadas.length + 1} de ${M.cartasPorAnio}`);
+    jugarPregunta(item, "cartas", yo.cartasTomadas.length + 1, M.cartasPorAnio, item && item.titulo ? item.titulo : "Situación inesperada", () => {
+      yo.cartasTomadas.push(carta.indice);
+      if (carta.sprite) { carta.sprite.destroy(); carta.sprite = null; }
+      const faltan = M.cartasPorAnio - yo.cartasTomadas.length;
+      if (faltan > 0) { cerrarPanel(); enviarEstado(); aviso(`Te falta ${faltan} carta por encontrar`, "carta"); }
+      else tareaHecha("Situaciones inesperadas");
+    }, "Volver al mapa");
   }
 
-  function terminar() {
-    yo.termino = true;
-    yo.tiempo = Date.now() - partida.t0;
-    yo.fase = "fin";
-    jugando = false;
-    enviarEstado();
-    actualizarHud();
-    if (pueblo) pueblo.actualizarMarcadores();
-    pantallaEspera();
-    revisarFin();
-  }
+  /* ------------------------------ podio ------------------------------ */
 
-  function revisarFin() {
-    if (!partida || podioMostrado || !yo.termino) return;
-    const todos = jugadoresPartida();
-    const pendientes = todos.filter((j) => !j.termino && conectado(j));
-    const faltantes = partida.ids.filter((id) => id !== yo.id && !otros[id] && !salidos.has(id));
-    if (!pendientes.length && !faltantes.length) mostrarPodio();
-  }
-
-  function pantallaEspera() {
-    if (podioMostrado) return;
-    mostrarPantalla(true);
-    const c = caja(true);
-    c.append(con("div", "icono-grande", Pixel.retrato(pjDe(yo.pj), 4), ico("llegada", 5)));
-    c.append(nodo("h2", "", "¡Terminaste!"));
-    c.append(nodo("p", "centrado", `Hiciste ${yo.puntos} puntos en ${mmss(yo.tiempo)} con ${yo.aciertos} aciertos.`));
-    c.append(nodo("p", "suave centrado", "Esperando a que los demás terminen…"));
-    const ul = nodo("ul", "lista-jugadores");
-    jugadoresPartida().sort((a, b) => b.puntos - a.puntos).forEach((j) => {
-      const li = nodo("li", j.id === yo.id ? "yo" : "");
-      li.append(con("span", "lj-icono", pjDe(j.pj) ? Pixel.cara(pjDe(j.pj), 2) : ico("jugadores")));
-      li.append(nodo("span", "lj-nombre", j.nombre));
-      li.append(nodo("span", "lj-pj", j.termino ? `Listo · ${j.puntos} pts` : (conectado(j) ? `Proceso ${Math.min(j.proc + 1, M.procesos.length)}/${M.procesos.length} · ${j.puntos} pts` : "desconectado")));
-      ul.append(li);
-    });
-    c.append(ul);
-    const host = partida.ids[0];
-    if (host === yo.id || !otros[host] || !conectado(otros[host])) {
-      c.append(boton("Terminar la partida y ver el podio", "btn-secundario", () => { red.enviar({ t: "fin", id: yo.id }); mostrarPodio(); }));
+  function mostrarPodio(refrescar) {
+    if (!partida) return;
+    if (refrescar && !podioMostrado) return;
+    if (!podioMostrado) {
+      podioMostrado = true;
+      jugando = false;
+      cerrarPanel();
+      ocultarEspera();
+      $("hud").classList.add("oculto");
+      try { sessionStorage.removeItem("cd-mj"); } catch (e) { /* nada */ }
+      if (yo.fase !== "fin") { yo.fase = "fin"; enviarEstado(); }
     }
-    c.append(boton("Salir de la partida", "btn-secundario", () => menuPartida("salir")));
-  }
-
-  function calcularPodio() {
-    const js = jugadoresPartida();
-    const terminados = js.filter((j) => j.termino).sort((a, b) => a.tiempo - b.tiempo);
-    const filas = js.map((j) => {
-      const pos = terminados.findIndex((x) => x.id === j.id);
-      const llegada = pos >= 0 ? (M.bonoLlegada[pos] || 0) : 0;
-      return { j, llegada, total: j.puntos + llegada };
-    });
-    filas.sort((a, b) => b.total - a.total || (a.j.termino ? a.j.tiempo : 1e12) - (b.j.termino ? b.j.tiempo : 1e12));
-    return filas;
-  }
-
-  function mostrarPodio() {
-    if (podioMostrado || !partida) return;
-    podioMostrado = true;
-    jugando = false;
-    cerrarPanel();
-    $("hud").classList.add("oculto");
     mostrarPantalla(true);
-    try { sessionStorage.removeItem("cd-mj"); } catch (e) { /* nada */ }
-    const c = caja();
+    const c = caja(refrescar);
     c.append(nodo("h1", "centrado", "Podio"));
-    const filas = calcularPodio();
+    const filas = jugadoresPartida().filter((j) => !salidos.has(j.id)).map((j) => ({ j, llegada: llegadaDe(j.id), total: totalDe(j) }))
+      .sort((a, b) => b.total - a.total);
     const podio = nodo("div", "podio-mj");
     filas.forEach((f, i) => {
       const p = pjDe(f.j.pj);
@@ -967,15 +1145,15 @@
       d.append(con("div", "puesto-info",
         con("div", "puesto-nombre", f.j.nombre, f.j.id === yo.id ? nodo("span", "tu", " (tú)") : null),
         nodo("div", "puesto-total", f.total + " pts")));
+      const evals = Object.values(f.j.evaluaciones || {});
       d.append(nodo("div", "puesto-detalle",
-        `Preguntas ${f.j.puntos - (f.j.bonoOp || 0)} · Oportunidad ${f.j.bonoOp || 0} · Llegada ${f.llegada}` +
-        ` · ${f.j.aciertos || 0} aciertos` + (f.j.termino ? ` · ${mmss(f.j.tiempo)}` : " · no terminó")));
+        `Preguntas y situaciones ${f.j.ptsPreguntas || 0} · Evaluaciones ${f.j.ptsEval || 0} · Llegadas ${f.llegada} · Concurso ${f.j.bonoOp || 0}` +
+        ` · ${f.j.aciertos || 0} aciertos` + (evals.length ? ` · evaluación promedio ${Math.round(evals.reduce((a, b) => a + b, 0) / evals.length)}%` : "") +
+        (f.j.fase === "fin" ? "" : ` · iba en el año ${f.j.anio}`)));
       podio.append(d);
     });
     c.append(podio);
-    const total = M.procesos.reduce((s, p) => s + p.preguntas.length, 0);
-    c.append(nodo("p", "suave centrado pequeno-texto",
-      `Cada acierto vale ${M.puntosAcierto} + hasta ${M.bonoRapidez} por rapidez (${total} preguntas). Bono por oportunidad laboral del concurso y por orden de llegada (${M.bonoLlegada.join(", ")}).`));
+    c.append(nodo("p", "suave pequeno centrado", "Puntos: aciertos (más si la pregunta es difícil y si respondes rápido), evaluaciones anuales, orden de llegada de cada año y el resultado del concurso."));
     if (soyCoordinador()) c.append(boton("Otra partida en esta sala", "btn-principal btn-grande", () => cancelarParaTodos("Nueva partida: elijan personaje y empiecen.")));
     else c.append(boton("Volver a la sala de espera", "btn-principal btn-grande", () => volverASala()));
     c.append(boton("Crear una sala nueva", "btn-secundario", () => { limpiarPartida(); salirSala(); pantallaInicio(); }));
@@ -994,6 +1172,7 @@
       const m = Graficos.construirMapa(this);
       this.caminable = m.caminable;
       this.dibujos = m.dibujos;
+      this.tapado = m.tapado;
 
       this.casilla = { x: MAPA.inicio.x, y: MAPA.inicio.y };
       this.dir = "arriba";
@@ -1039,8 +1218,7 @@
       this.miEtiqueta.setVisible(true);
       this.ajustarZoom();
       Object.values(otros).forEach((o) => this.actualizarOtro(o));
-      const p = procesoActual();
-      if (p && p.tipo === "cartas") this.generarCartas();
+      this.generarCartas();
       this.actualizarMarcadores();
     }
 
@@ -1098,8 +1276,7 @@
     edificioConPuerta(x, y) { return MAPA.edificios.find((e) => e.puerta.x === x && e.puerta.y === y); }
     esCaminable(x, y) { return y >= 0 && y < this.caminable.length && x >= 0 && x < this.caminable[0].length && this.caminable[y][x]; }
     cartaEn(x, y) {
-      const p = procesoActual();
-      if (!p || p.tipo !== "cartas") return null;
+      if (!partida || yo.fase !== "juego" || !cartasDisponibles()) return null;
       return this.cartas.find((c) => !yo.cartasTomadas.includes(c.indice) && c.x === x && c.y === y);
     }
 
@@ -1132,28 +1309,30 @@
       return null;
     }
 
-    // Las cartas salen en las mismas casillas para todos (semilla de la partida)
+    // Cartas del año: salen en las mismas casillas para todos (semilla de la partida y año),
+    // pero cada uno recoge las suyas y le salen sus propias situaciones
     generarCartas() {
       this.limpiarCartas();
-      const p = procesoActual();
-      if (!p || p.tipo !== "cartas") return;
-      const rnd = azarConSemilla(partida.semilla + yo.proc * 101);
+      if (!partida || yo.fase !== "juego" || !cartasDisponibles()) return;
+      const rnd = azarConSemilla(partida.semilla + yo.anio * 101);
       const libres = [];
       const puertas = MAPA.edificios.map((e) => e.puerta);
       MAPA.filas.forEach((fila, y) => [...fila].forEach((ch, x) => {
-        if (ch !== "g" || y <= 1 || y >= 22) return;
-        if (puertas.some((q) => Math.abs(q.x - x) + Math.abs(q.y - y) < 3)) return;
+        // en cualquier casilla por donde se camina (también caminos y orillas), pero nunca detrás de algo
+        if (!this.esCaminable(x, y) || this.tapado[y][x]) return;
+        if (puertas.some((q) => Math.abs(q.x - x) + Math.abs(q.y - y) < 2)) return;
+        if (INICIOS.some((q) => q.x === x && q.y === y)) return;
         libres.push({ x, y });
       }));
-      partida.plan[yo.proc].forEach((ref, i) => {
+      for (let i = 0; i < M.cartasPorAnio && libres.length; i++) {
         const pos = libres.splice(Math.floor(rnd() * libres.length), 1)[0];
-        const carta = { indice: i, ref, x: pos.x, y: pos.y, sprite: null };
+        const carta = { indice: i, x: pos.x, y: pos.y, sprite: null };
         if (!yo.cartasTomadas.includes(i)) {
           carta.sprite = this.add.image(this.pxX(pos.x), pos.y * T + T / 2 + 4, "carta").setDepth(pos.y * T + T);
           this.tweens.add({ targets: carta.sprite, y: carta.sprite.y - 5, duration: 600, yoyo: true, repeat: -1, ease: "Sine.inOut", delay: i * 200 });
         }
         this.cartas.push(carta);
-      });
+      }
       this.actualizarMarcadores();
     }
 
@@ -1181,18 +1360,19 @@
         v.sprite.setPosition(px, py);
       }
       v.x = o.x; v.y = o.y;
-      // qué está haciendo (si está respondiendo en un edificio o una carta)
-      const icono = o.panel && Pixel.ICONOS[o.panel] ? o.panel : null;
+      // qué está haciendo: respondiendo en un edificio o una carta, o esperando a los demás
+      const icono = o.panel && Pixel.ICONOS[o.panel] ? o.panel : (o.fase === "espera" ? "reloj" : null);
       if (icono) {
         if (!v.burbuja) v.burbuja = this.add.image(px, py, this.texBurbuja(icono)).setOrigin(0.5, 1).setDepth(99992);
         else v.burbuja.setTexture(this.texBurbuja(icono));
         v.burbuja.setVisible(true);
       } else if (v.burbuja) v.burbuja.setVisible(false);
       // avisos de su progreso
-      if (v.proc !== undefined && o.proc > v.proc && M.procesos[v.proc]) aviso(`${o.nombre} completó: ${M.procesos[v.proc].nombre}`, "check");
-      if (v.termino === false && o.termino) aviso(`¡${o.nombre} terminó todos los procesos!`, "llegada");
-      v.proc = o.proc; v.termino = !!o.termino;
-      const rotulo = o.nombre + (o.termino ? " !" : "");
+      const k = (o.progreso || [0])[0];
+      if (v.anio === o.anio && v.k !== undefined && k > v.k && v.tarea && v.tarea !== "cartas" && v.tarea !== "evaluacion") aviso(`${o.nombre} completó: ${infoTarea(v.tarea).nombre}`, "check");
+      if (v.terminoAnio !== undefined && (o.terminoAnio || 0) > v.terminoAnio) aviso(`${o.nombre} terminó el año ${o.terminoAnio}`, "llegada");
+      v.anio = o.anio; v.k = k; v.tarea = o.tarea; v.terminoAnio = o.terminoAnio || 0;
+      const rotulo = o.nombre;
       if (v.nombre !== rotulo) { v.nombre = rotulo; v.texto.destroy(); v.texto = this.etiqueta(rotulo); }
     }
 
@@ -1260,20 +1440,22 @@
 
     actualizarMarcadores() {
       if (!this.dibujos) return;
-      const p = partida ? procesoActual() : null;
+      const t = partida && yo.fase === "juego" ? tareaActual() : null;
+      const ts = partida ? tareasDelAnio(yo.anio) : [];
       MAPA.edificios.forEach((ed) => {
         const d = this.dibujos[ed.id];
-        if (!partida) { Graficos.marcar(d, null); return; }
-        const pendientes = M.procesos.slice(yo.proc).some((x) => x.edificio === ed.id);
-        if (p && p.edificio === ed.id) Graficos.marcar(d, null);
-        else if (!pendientes) Graficos.marcar(d, "check");
+        if (!partida || yo.fase === "fin") { Graficos.marcar(d, null); return; }
+        const delEdificio = ts.filter((x) => infoTarea(x).edificio === ed.id);
+        if (!delEdificio.length) { Graficos.marcar(d, null); return; }
+        if (t && infoTarea(t).edificio === ed.id) Graficos.marcar(d, null);
+        else if (delEdificio.every(hecha)) Graficos.marcar(d, "check");
         else Graficos.marcar(d, "candado");
       });
       let destino = null;
-      if (p && p.edificio) {
-        const ed = MAPA.edificios.find((e) => e.id === p.edificio);
+      if (t && t !== "cartas") {
+        const ed = MAPA.edificios.find((e) => e.id === infoTarea(t).edificio);
         destino = { x: this.pxX(ed.puerta.x), y: (ed.y + ed.h) * T - 14 };
-      } else if (p && p.tipo === "cartas") {
+      } else if (t === "cartas") {
         const libres = this.cartas.filter((c) => !yo.cartasTomadas.includes(c.indice));
         libres.sort((a, b) => (Math.abs(a.x - this.casilla.x) + Math.abs(a.y - this.casilla.y)) - (Math.abs(b.x - this.casilla.x) + Math.abs(b.y - this.casilla.y)));
         if (libres[0]) destino = { x: this.pxX(libres[0].x), y: libres[0].y * T - 10 };
@@ -1339,7 +1521,7 @@
   // ¿Se recargó la página a mitad de partida? Se retoma donde iba.
   const guardado = leer("cd-mj");
   const params = new URLSearchParams(location.search);
-  if (guardado && guardado.yo && guardado.partida && (!params.get("sala") || params.get("sala").toUpperCase() === guardado.yo.sala) &&
+  if (guardado && guardado.yo && guardado.partida && guardado.yo.anio && (!params.get("sala") || params.get("sala").toUpperCase() === guardado.yo.sala) &&
       guardado.partida.transcurrido < M.duracionMaximaMin * 60000) {
     Object.assign(yo, guardado.yo);
     conectar();

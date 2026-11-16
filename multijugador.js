@@ -744,8 +744,9 @@
       const d = nodo("div", "puesto-mj p" + (i + 1) + (f.j.id === yo.id ? " yo" : ""));
       d.append(con("div", "medalla", MEDALLAS[i] ? ico(MEDALLAS[i], 3) : `${i + 1}°`));
       if (p) { const r = nodo("div", "pj-retrato"); r.append(Pixel.retrato(p, 2)); d.append(r); }
-      d.append(nodo("div", "puesto-nombre", `${f.j.nombre}${f.j.id === yo.id ? " (tú)" : ""}`));
-      d.append(nodo("div", "puesto-total", f.total + " pts"));
+      d.append(con("div", "puesto-info",
+        con("div", "puesto-nombre", f.j.nombre, f.j.id === yo.id ? nodo("span", "tu", " (tú)") : null),
+        nodo("div", "puesto-total", f.total + " pts")));
       d.append(nodo("div", "puesto-detalle",
         `Preguntas ${f.j.puntos - (f.j.bonoOp || 0)} · Oportunidad ${f.j.bonoOp || 0} · Llegada ${f.llegada}` +
         ` · ${f.j.aciertos || 0} aciertos` + (f.j.termino ? ` · ${mmss(f.j.tiempo)}` : " · no terminó")));

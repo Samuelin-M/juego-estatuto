@@ -476,7 +476,7 @@ const Pixel = (function () {
 
   // Placa con un nombre escrito en letras pixeladas (para el mapa)
   function placa(nombre, propia) {
-    const txt = String(nombre || "").toUpperCase().slice(0, 14);
+    const txt = String(nombre || "").toUpperCase().slice(0, 16);
     const w = Math.max(9, anchoTexto(txt) + 6);
     const l = lienzo(w + 2, 12);
     l.r(1, 1, w, 9, propia ? "#f2c14e" : "#2b4638");

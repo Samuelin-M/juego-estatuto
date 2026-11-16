@@ -500,6 +500,8 @@ input { font-size: 19px; font-family: inherit; }
   background: var(--pizarra);
 }
 .peso { display: inline-block; font-size: .72rem; font-weight: 400; padding: 0 6px; background: var(--madera); color: var(--tiza); border: 2px solid var(--contorno); margin-left: 2px; }
+.caracter { display: inline-block; font-size: .72rem; font-weight: 400; padding: 0 6px; background: rgba(246,241,227,.12); color: var(--tiza-suave); border: 2px solid var(--contorno); }
+.caracter.eliminatoria { background: var(--acento); color: var(--tinta); }
 .nivel { display: inline-block; padding: 0 6px; margin-left: 6px; background: var(--acento); color: var(--tinta); border: 2px solid var(--contorno); letter-spacing: .04em; }
 .motivo { display: block; font-size: .76rem; font-weight: 400; opacity: .9; margin-top: 4px; }
 .btn-curso { display: flex; flex-direction: column; gap: 4px; }

@@ -116,29 +116,42 @@ const CONTENIDO = {
   // Se hace una pregunta de cada prueba, tomada de su banco (ver "bancos" más abajo).
   // Valor de cada respuesta: 100 si es correcta, 0 si no (o el "valor" que se le ponga).
   // La valoración de antecedentes sale del perfil del personaje (experiencia y formación).
+  // Pesos y puntaje mínimo tomados de los Acuerdos de la CNSC de octubre de 2026 para el
+  // concurso de docentes (art. 13 de cada acuerdo, columna "Docente"):
+  //   aptitudes y competencias básicas 55 % (eliminatoria, mínimo 60/100), psicotécnica 5 %,
+  //   valoración de antecedentes 30 %, entrevista 10 %. Para directivos docentes el mínimo es 70/100.
   concurso: {
     // Orden de las etapas en la Secretaría ("antecedentes" no tiene pregunta: se calcula sola)
     orden: ["aptitudes", "psicotecnica", "antecedentes", "entrevista"],
-    pesoAntecedentes: 0.3,
+    // Pruebas escritas: se presentan el mismo día. Las demás solo las presenta quien pasa la eliminatoria.
+    escritas: ["aptitudes", "psicotecnica"],
+    pesoAntecedentes: 0.30,
     pruebas: [
-      { id: "aptitudes", nombre: "Prueba de aptitudes y competencias básicas", peso: 0.3, banco: "aptitudes" },
-      { id: "psicotecnica", nombre: "Prueba psicotécnica", peso: 0.2, banco: "psicotecnica" },
-      { id: "entrevista", nombre: "Entrevista", peso: 0.2, banco: "entrevista" }
+      // "minimo" la vuelve eliminatoria: con menos de eso no se sigue en el concurso
+      { id: "aptitudes", nombre: "Prueba de aptitudes y competencias básicas", peso: 0.55, minimo: 60, banco: "aptitudes" },
+      { id: "psicotecnica", nombre: "Prueba psicotécnica", peso: 0.05, banco: "psicotecnica" },
+      { id: "entrevista", nombre: "Entrevista", peso: 0.10, banco: "entrevista" }
     ],
-    // Según el puntaje del concurso se ofrece una oportunidad laboral (de mayor a menor)
+    // Lo que se muestra a quien no alcanza el mínimo de la prueba eliminatoria
+    eliminado: {
+      articulo: "Art. 9 · Prueba eliminatoria",
+      explicacion: "La prueba de aptitudes y competencias básicas es eliminatoria: los docentes la aprueban con 60 de 100 y los directivos docentes con 70 de 100. Quien no la supera no sigue a la valoración de antecedentes ni a la entrevista, y no entra a la lista de elegibles."
+    },
+    // Según el puntaje del concurso se ofrece una oportunidad laboral (de mayor a menor).
+    // Quien pasa la eliminatoria saca por lo menos 55 + 30 % de sus antecedentes, así que siempre queda en la lista.
     oportunidades: [
       {
-        minimo: 70, tipo: "vacante", nombre: "Vacante definitiva", estado: "prueba",
+        minimo: 75, tipo: "vacante", nombre: "Vacante definitiva", estado: "prueba",
         articulo: "Arts. 11 y 12 · Provisión de cargos y periodo de prueba",
         explicacion: "La vacante se provee con quien ocupa el primer lugar de la lista de elegibles, y quien la ocupa queda nombrado en periodo de prueba hasta terminar el año escolar (mínimo 4 meses)."
       },
       {
-        minimo: 55, tipo: "provisional", nombre: "Nombramiento provisional", estado: "provisional",
+        minimo: 70, tipo: "provisional", nombre: "Nombramiento provisional", estado: "provisional",
         articulo: "Art. 13 · Nombramientos provisionales",
         explicacion: "Una vacante definitiva se puede cubrir de forma provisional mientras se provee en periodo de prueba. Para tener derechos de carrera hay que ganar el concurso y aprobar el periodo de prueba."
       },
       {
-        minimo: 40, tipo: "reemplazo", nombre: "Reemplazo (vacante temporal)", estado: "provisional",
+        minimo: 60, tipo: "reemplazo", nombre: "Reemplazo (vacante temporal)", estado: "provisional",
         articulo: "Art. 13, literal a · Vacantes temporales",
         explicacion: "Cuando el titular de un cargo se separa temporalmente, se nombra un provisional usando la lista de elegibles vigente. No aceptar no saca a nadie de la lista."
       },
@@ -204,10 +217,11 @@ const CONTENIDO = {
       articulo: "Arts. 35 y 36 · Evaluación de competencias",
       explicacion: "La evaluación de competencias es voluntaria. Con más de 80%, el docente es candidato a reubicarse en un nivel salarial superior o a ascender de grado, en estricto orden de puntaje y según el presupuesto disponible."
     },
+    // minimo 70: el puntaje mínimo de la prueba eliminatoria para directivos docentes (Acuerdos CNSC 2026)
     directivos: [
       { cargo: "Coordinador", aniosExperiencia: 5, minimo: 70, efectos: { experiencia: 5, popularidad: 3 },
         articulo: "Art. 10 · Requisitos para directivos", explicacion: "Para ser coordinador se necesita título de licenciado o profesional y 5 años de experiencia profesional." },
-      { cargo: "Rector", aniosExperiencia: 6, minimo: 75, efectos: { experiencia: 8, popularidad: 5 },
+      { cargo: "Rector", aniosExperiencia: 6, minimo: 70, efectos: { experiencia: 8, popularidad: 5 },
         articulo: "Art. 10 · Requisitos para directivos", explicacion: "Para ser rector se necesita título de licenciado o profesional y 6 años de experiencia profesional." }
     ]
   },

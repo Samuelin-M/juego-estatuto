@@ -882,6 +882,10 @@
       res.append(nodo("div", "rp-titulo", op === null ? "Se acabó el tiempo" : ok ? (situacion ? "¡Buena decisión!" : "¡Correcto!") : (situacion ? "No fue la mejor decisión" : "Incorrecto")));
       res.append(nodo("div", "rp-puntos", ok ? `+${pts} pts (${valorAcierto} por ser ${Comun.nombreNivel(dif)} + ${bono} por rapidez · ${(t / 1000).toFixed(1)} s)` : "+0 pts"));
       c2.append(res);
+      const prc = C.concurso.pruebas.find((x) => x.banco === banco);
+      if (prc && prc.minimo && Comun.valor(op) < prc.minimo) {
+        c2.append(nodo("div", "alerta", `Esta prueba es eliminatoria y se aprueba con ${prc.minimo}/100. Presentarás la psicotécnica porque es el mismo día, pero no seguirás a la entrevista.`));
+      }
       if (op && !ok) c2.append(nodo("p", "respuesta-elegida", "Tu respuesta: " + op.texto));
       const cor = Comun.correctaDe(item);
       if (!ok && cor) c2.append(con("div", "globo", "La respuesta correcta: ", con("b", "", cor.texto)));
@@ -913,17 +917,24 @@
     const ol = nodo("ol", "etapas");
     orden.forEach((id, i) => {
       const et = est.etapas[i] || {};
-      ol.append(con("li", "", con("div", "", con("b", "", et.nombre || id), ": " + (et.descripcion || ""), " ", nodo("span", "peso", Math.round(peso(id) * 100) + "%"))));
+      const p = K.pruebas.find((x) => x.id === id);
+      ol.append(con("li", "", con("div", "", con("b", "", et.nombre || id), ": " + (et.descripcion || ""), " ",
+        nodo("span", "peso", Math.round(peso(id) * 100) + "%"), " ",
+        nodo("span", "caracter" + (p && p.minimo ? " eliminatoria" : ""), p && p.minimo ? `Eliminatoria · mínimo ${p.minimo}/100` : "Clasificatoria"))));
     });
     c.append(ol);
     c.append(nodo("p", "suave pequeno", `Responde rápido: cada pregunta tiene ${M.segundosPorPregunta} segundos. La valoración de antecedentes sale de tu personaje.`));
     respuestasConcurso = {};
-    const pruebas = K.pruebas.map((p) => p.banco);
+    const escritas = K.escritas || [];
+    // Si no pasa la eliminatoria, no presenta la entrevista (solo las pruebas escritas del mismo día)
+    const sigue = (p) => !(eliminadoConcurso() && !escritas.includes(p.id));
+    const cuantas = () => K.pruebas.filter(sigue).length;
     const siguiente = (i) => {
-      if (i >= pruebas.length) return resultadoConcurso();
-      const banco = pruebas[i];
+      if (i >= K.pruebas.length || !sigue(K.pruebas[i])) return resultadoConcurso();
+      const banco = K.pruebas[i].banco;
       const item = Comun.sacar(banco, (yo.usadas[banco] = yo.usadas[banco] || []), null, Math.random, 1);
-      jugarPregunta(item, banco, i + 1, pruebas.length, null, () => siguiente(i + 1), i + 1 < pruebas.length ? "Siguiente prueba" : "Ver resultados");
+      const ultima = () => i + 1 >= K.pruebas.length || !sigue(K.pruebas[i + 1]);
+      jugarPregunta(item, banco, i + 1, cuantas(), null, () => siguiente(i + 1), ultima() ? "Ver resultados" : "Siguiente prueba");
     };
     accion("Empezar las pruebas", () => siguiente(0));
   }
@@ -935,26 +946,38 @@
     return f;
   }
 
+  // No alcanzó el mínimo de la prueba eliminatoria (aptitudes y competencias básicas)
+  function eliminadoConcurso() {
+    const elim = C.concurso.pruebas.find((p) => p.minimo);
+    return !!elim && elim.banco in respuestasConcurso && Comun.valor(respuestasConcurso[elim.banco]) < elim.minimo;
+  }
+
   function resultadoConcurso() {
     const K = C.concurso;
+    const escritas = K.escritas || [];
+    const fuera = eliminadoConcurso();
     const antecedentes = Math.round((yo.ind.experiencia + yo.ind.formacion) / 2);
-    let total = antecedentes * K.pesoAntecedentes;
+    let total = fuera ? 0 : antecedentes * K.pesoAntecedentes;
     const c = limpiarCuerpo();
     c.append(con("div", "personaje", Pixel.cara("funcionaria", 2), "Resultado del concurso"));
     const tabla = nodo("div", "tabla");
     K.pruebas.forEach((pr) => {
+      if (fuera && !escritas.includes(pr.id)) return;
       const valor = Comun.valor(respuestasConcurso[pr.banco]);
       total += valor * pr.peso;
-      tabla.append(fila(`${pr.nombre}: ${valor}/100`, `+${(valor * pr.peso).toFixed(1)}`));
+      tabla.append(fila(`${pr.nombre}: ${valor}/100` + (pr.minimo ? ` (mínimo ${pr.minimo})` : ""), `+${(valor * pr.peso).toFixed(1)}`));
     });
-    tabla.append(fila(`Valoración de antecedentes de ${pjDe(yo.pj).nombre}: ${antecedentes}/100`, `+${(antecedentes * K.pesoAntecedentes).toFixed(1)}`));
+    if (fuera) tabla.append(fila("Antecedentes y entrevista: solo para quien pasa la eliminatoria", "No aplica"));
+    else tabla.append(fila(`Valoración de antecedentes de ${pjDe(yo.pj).nombre}: ${antecedentes}/100`, `+${(antecedentes * K.pesoAntecedentes).toFixed(1)}`));
     total = Math.round(total);
-    tabla.append(fila("Puntaje del concurso", String(total), true));
+    tabla.append(fila("Puntaje del concurso", fuera ? "No continúa" : String(total), true));
     c.append(tabla);
-    const op = K.oportunidades.find((o) => total >= o.minimo);
+    const op = fuera
+      ? Object.assign({}, K.oportunidades.find((o) => o.tipo === "ninguna"), K.eliminado)
+      : K.oportunidades.find((o) => total >= o.minimo);
     const bono = M.bonoOportunidad[op.tipo] || 0;
     if (!yo.hecho.concurso) { yo.bonoOp = bono; yo.puntos += bono; yo.oportunidad = op.tipo; }
-    c.append(con("div", "oportunidad " + op.tipo, ico(ICONO_OPORTUNIDAD[op.tipo]), nodo("div", "oportunidad-titulo", (op.tipo === "ninguna" ? "Sin plaza" : "Oportunidad laboral: " + op.nombre) + ` · +${bono} pts`)));
+    c.append(con("div", "oportunidad " + op.tipo, ico(ICONO_OPORTUNIDAD[op.tipo]), nodo("div", "oportunidad-titulo", (fuera ? "No superaste la prueba eliminatoria" : op.tipo === "ninguna" ? "Sin plaza" : "Oportunidad laboral: " + op.nombre) + ` · +${bono} pts`)));
     const t = nodo("div", "tarjeta-articulo");
     t.append(con("div", "art-titulo", ico("articulo"), op.articulo));
     t.append(nodo("p", "", op.explicacion));

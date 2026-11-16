@@ -156,7 +156,7 @@ button {
 }
 button:active { transform: scale(.98); }
 .btn-opcion { background: rgba(243,239,228,.08); color: var(--tiza); border: 1.5px solid rgba(243,239,228,.35); }
-.btn-opcion:hover { background: rgba(243,239,228,.16); }
+@media (hover: hover) { .btn-opcion:hover { background: rgba(243,239,228,.16); } }
 .btn-principal { background: var(--acento); color: var(--tinta); font-weight: 700; text-align: center; width: 100%; }
 
 .tarjeta-articulo {
@@ -249,7 +249,7 @@ h2 { font-size: 1.4rem; color: var(--acento); text-align: center; }
 
 .alerta { background: rgba(242,193,78,.15); border: 1.5px solid var(--acento); border-radius: var(--radio); padding: 10px 12px; font-size: .9rem; }
 .paso { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--tiza-suave); }
-.titulo-carta { color: var(--acento); font-size: 1.15rem; }
+.titulo-carta { color: var(--acento); font-size: 1rem; }
 .globo.pregunta { font-weight: 700; font-size: 1.05rem; }
 
 button:disabled { opacity: .45; cursor: not-allowed; }
@@ -270,7 +270,7 @@ button:disabled:active { transform: none; }
   border: 2px solid rgba(243,239,228,.25); border-radius: var(--radio);
   padding: 14px; text-align: left;
 }
-.tarjeta-personaje:hover { border-color: var(--acento); background: rgba(243,239,228,.12); }
+@media (hover: hover) { .tarjeta-personaje:hover { border-color: var(--acento); background: rgba(243,239,228,.12); } }
 .pj-cabecera { display: flex; align-items: center; gap: 10px; }
 .pj-icono { font-size: 2.2rem; }
 .pj-nombre { font-weight: 800; font-size: 1.15rem; }
@@ -329,3 +329,56 @@ input { font-size: 16px; } /* evita que Safari haga zoom al escribir */
   .hud-fila.chips { order: 1; margin-top: 0; }
   #hud-indicadores { order: 2; width: 100%; margin-top: 4px; }
 }
+
+/* Avisos arriba, debajo de la barra, para no tapar al personaje */
+#aviso {
+  bottom: auto;
+  top: calc(var(--alto-hud, 0px) + 10px);
+  transform: translate(-50%, -12px);
+}
+#aviso.visible { transform: translate(-50%, 0); }
+
+/* ===== La pregunta se distingue de las respuestas ===== */
+.enunciado {
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--tiza);
+  padding: 2px 0 2px 12px;
+  border-left: 4px solid var(--acento);
+  white-space: pre-line;
+}
+.elige {
+  font-size: .74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--tiza-suave);
+  margin-bottom: -6px;
+}
+.opciones.respuestas { counter-reset: respuesta; }
+.opciones.respuestas .btn-opcion {
+  counter-increment: respuesta;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(243,239,228,.1);
+  border: 1.5px solid rgba(243,239,228,.22);
+  font-size: .95rem;
+  line-height: 1.35;
+}
+.opciones.respuestas .btn-opcion::before {
+  content: counter(respuesta, upper-alpha);
+  flex: 0 0 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--acento);
+  color: var(--tinta);
+  font-weight: 800;
+  font-size: .85rem;
+}
+@media (hover: hover) { .opciones.respuestas .btn-opcion:hover { background: rgba(243,239,228,.18); border-color: var(--acento); } }
+.opciones.respuestas .btn-opcion:active { background: rgba(242,193,78,.2); border-color: var(--acento); }
+.opciones.respuestas .btn-opcion:disabled { opacity: .55; }

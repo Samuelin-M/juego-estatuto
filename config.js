@@ -1,7 +1,7 @@
 /* ==========================================================================
-   CONFIGURACIÓN DEL MODO EN VIVO
+   CONFIGURACIÓN DEL MULTIJUGADOR
 
-   Para que los celulares se conecten con la pantalla del presentador hace
+   Para que los celulares de una sala multijugador se conecten entre sí hace
    falta un servidor en tiempo real. Usamos Supabase Realtime (solo canales
    de "broadcast": no se crean tablas ni se guardan datos).
 
@@ -11,8 +11,8 @@
      3. Copia la clave pública "anon" / "publishable" en supabaseClave.
         (Es una clave pública por diseño; NUNCA pongas aquí la "service_role".)
 
-   Mientras esté vacío, el modo en vivo funciona en "modo prueba": el
-   presentador y los jugadores tienen que ser pestañas del mismo navegador.
+   Mientras esté vacío, el multijugador funciona en "modo prueba":
+   los jugadores tienen que ser pestañas del mismo navegador.
    ========================================================================== */
 
 const CONFIG_EN_VIVO = {

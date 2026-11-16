@@ -1,6 +1,6 @@
 /* ==========================================================================
    CONTENIDO DEL JUEGO — este es el archivo que el grupo edita.
-   Lo usan los dos modos: el individual (mapa) y el en vivo (presentador + celulares).
+   Lo usan los dos modos: el individual y el multijugador (ambos en el mapa).
 
    Basado en la "Propuesta de dinámica" del grupo y en el Decreto 1278 de 2002
    (Estatuto de Profesionalización Docente), artículos 8 a 40.
@@ -361,55 +361,34 @@ const CONTENIDO = {
     { id: "recurso15", texto: "¿En cuánto tiempo deben resolverse los recursos contra una evaluación de desempeño?", opciones: ["5 días hábiles", "15 días hábiles", "30 días", "6 meses"], correcta: 1, articulo: "Art. 36", explicacion: "Los recursos de reposición y apelación deben resolverse dentro de los 15 días hábiles siguientes." }
   ],
 
-  /* ============================ MODO EN VIVO ============================ */
-  // Rondas para el modo competitivo (propuesta, modalidad 2).
-  // Tipos de desafío:
-  //   "rapida": pregunta rápida, gana el equipo de quien responde bien primero
-  //   "duelo":  todos responden; puntos según el % de aciertos de cada equipo
-  //   "caso":   situación con opciones; cada equipo decide por mayoría
-  //             ref: "carta:ID" o "colegio:ID"
-  // Las preguntas se toman de "preguntas" (pregunta: "ID") o de los
-  // componentes del concurso (ref: "concurso:ID"; la correcta es la de mayor valor).
-  enVivo: {
-    segundos: 20,
-    rondas: [
-      {
-        nombre: "Concurso docente",
-        descripcion: "Tres duelos, uno por cada componente del concurso. Al final, cada equipo recibe una oportunidad laboral según su puntaje.",
-        desafios: [
-          { tipo: "duelo", ref: "concurso:aptitudes", indicador: "formacion" },
-          { tipo: "duelo", ref: "concurso:psicotecnica", indicador: "desempeno" },
-          { tipo: "duelo", ref: "concurso:entrevista", indicador: "popularidad" }
-        ],
-        alFinal: "oportunidades"
-      },
-      {
-        nombre: "Evaluación anual",
-        descripcion: "Un caso en el aula y una pregunta rápida. Luego el rector evalúa a cada personaje.",
-        desafios: [
-          { tipo: "caso", ref: "colegio:disciplina" },
-          { tipo: "rapida", pregunta: "prueba60", indicador: "desempeno" }
-        ],
-        alFinal: "evaluacion"
-      },
-      {
-        nombre: "Situaciones inesperadas",
-        descripcion: "Cartas con situaciones laborales, personales o institucionales.",
-        desafios: [
-          { tipo: "caso", ref: "carta:regalo" },
-          { tipo: "caso", ref: "carta:reclamo" },
-          { tipo: "rapida", pregunta: "quienevalua", indicador: "popularidad" }
-        ]
-      },
-      {
-        nombre: "Progresión profesional",
-        descripcion: "Solo hay una plaza de coordinador: la gana el equipo más rápido. Luego, un duelo por el ascenso.",
-        desafios: [
-          { tipo: "rapida", pregunta: "rector6", premio: "Coordinador", indicador: "experiencia", titulo: "Plaza de coordinador" },
-          { tipo: "duelo", pregunta: "competencias80", indicador: "formacion", premio: "ascenso", titulo: "Evaluación de competencias" }
-        ],
-        alFinal: "evaluacion"
-      }
+  /* ============================ MULTIJUGADOR ============================ */
+  // Hasta 3 jugadores en el mismo mapa, cada uno con un personaje distinto.
+  // Compiten por completar los procesos en orden respondiendo preguntas.
+  // Puntaje de cada pregunta: acierto + bono por rapidez.
+  // Preguntas: "pregunta:ID" (de la lista de arriba), "concurso:ID",
+  //            "colegio:ID" o "carta:ID" (la correcta es la opción que mejor
+  //            se ajusta al estatuto, es decir, la de mayor efecto positivo).
+  multijugador: {
+    maxJugadores: 3,
+    segundosPorPregunta: 20,
+    puntosAcierto: 100,
+    bonoRapidez: 50,              // máximo, si se responde al instante
+    bonoLlegada: [100, 60, 30],   // por terminar de 1°, 2° y 3°
+    bonoOportunidad: { vacante: 60, provisional: 30, reemplazo: 10, ninguna: 0 },
+    duracionMaximaMin: 15,
+    procesos: [
+      { id: "concurso", edificio: "secretaria", nombre: "Concurso docente", articulos: "Arts. 8–15",
+        preguntas: ["concurso:aptitudes", "concurso:psicotecnica", "concurso:entrevista"] },
+      { id: "prueba", edificio: "colegio", nombre: "Periodo de prueba", articulos: "Arts. 12, 31, 33 y 34",
+        preguntas: ["colegio:disciplina", "colegio:observacion", "pregunta:prueba60"] },
+      { id: "cartas", tipo: "cartas", nombre: "Situaciones inesperadas", articulos: "Arts. 36–40",
+        preguntas: ["carta:regalo", "carta:reclamo"] },
+      { id: "evaluacion", edificio: "rectoria", nombre: "Evaluación anual", articulos: "Arts. 32–36",
+        preguntas: ["pregunta:quienevalua", "pregunta:dosanios"] },
+      { id: "formacion", edificio: "universidad", nombre: "Formación", articulos: "Arts. 21 y 38",
+        preguntas: ["pregunta:grado3", "carta:capacitacion"] },
+      { id: "ascenso", edificio: "secretaria", nombre: "Ascenso en el escalafón", articulos: "Arts. 10, 20 y 36",
+        preguntas: ["pregunta:tresanios", "pregunta:competencias80", "pregunta:rector6"] }
     ]
   }
 };

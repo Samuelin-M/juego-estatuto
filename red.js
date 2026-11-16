@@ -1,6 +1,6 @@
 /* ==========================================================================
-   RED DEL MODO EN VIVO
-   Conecta al presentador con los jugadores por un canal identificado con el
+   RED DEL MULTIJUGADOR
+   Conecta a los jugadores de una sala por un canal identificado con el
    código de la sala.
      - Con Supabase configurado (config.js): funciona entre dispositivos.
      - Sin configurar: usa BroadcastChannel (solo pestañas del mismo navegador),
@@ -12,8 +12,8 @@ const Red = (function () {
     return !!(typeof CONFIG_EN_VIVO !== "undefined" && CONFIG_EN_VIVO.supabaseUrl && CONFIG_EN_VIVO.supabaseClave && window.supabase);
   }
 
-  function conectar(sala, alRecibir, alEstado) {
-    const nombreCanal = "carrera-docente-" + sala;
+  function conectar(sala, alRecibir, alEstado, prefijo) {
+    const nombreCanal = (prefijo || "carrera-docente-") + sala;
     const pendientes = [];
     let listo = false;
     const avisar = (e) => { if (alEstado) alEstado(e); };

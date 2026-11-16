@@ -251,8 +251,9 @@
   function situacion(cuerpo, item, alTerminar) {
     if (item.personaje) cuerpo.append(nodo("div", "personaje", item.personaje));
     if (item.titulo) cuerpo.append(nodo("h3", "titulo-carta", item.titulo));
-    cuerpo.append(nodo("div", "globo", item.texto));
-    const ops = nodo("div", "opciones");
+    cuerpo.append(nodo("div", "enunciado", item.texto));
+    cuerpo.append(nodo("div", "elige", "Elige una respuesta"));
+    const ops = nodo("div", "opciones respuestas");
     item.opciones.forEach((op) => ops.append(boton(op.texto, "btn-opcion", () => {
       const c = limpiarCuerpo();
       c.append(nodo("p", "respuesta-elegida", op.texto));
@@ -298,8 +299,9 @@
       c = limpiarCuerpo();
       c.append(nodo("div", "paso", `Prueba ${i + 1} de ${K.componentes.length} · ${comp.nombre}`));
       c.append(nodo("div", "personaje", comp.personaje));
-      c.append(nodo("div", "globo", comp.texto));
-      const ops = nodo("div", "opciones");
+      c.append(nodo("div", "enunciado", comp.texto));
+      c.append(nodo("div", "elige", "Elige una respuesta"));
+      const ops = nodo("div", "opciones respuestas");
       comp.opciones.forEach((op) => ops.append(boton(op.texto, "btn-opcion", () => {
         respuestas[comp.id] = op;
         if (i + 1 < K.componentes.length) pregunta(i + 1);
@@ -468,8 +470,9 @@
     let c = limpiarCuerpo();
     c.append(nodo("div", "personaje", "📊 Evaluación de competencias"));
     c.append(nodo("div", "globo", `Tu base por formación, desempeño y experiencia es ${base}. Responde esta pregunta: si aciertas sumas 10 puntos, si fallas pierdes 10.`));
-    c.append(nodo("div", "globo pregunta", q.texto));
-    const ops = nodo("div", "opciones");
+    c.append(nodo("div", "enunciado pregunta", q.texto));
+    c.append(nodo("div", "elige", "Elige una respuesta"));
+    const ops = nodo("div", "opciones respuestas");
     q.opciones.forEach((o, i) => ops.append(boton(o, "btn-opcion", () => {
       const acierto = i === q.correcta;
       const total = lim(base + (acierto ? 10 : -10));
@@ -826,6 +829,8 @@
       if (vh > bh) { by -= (vh - bh) / 2; bh = vh; }
       cam.setBounds(bx, by, bw, bh);
       cam.setFollowOffset(0, altoHud / 2 / z);
+      // Los avisos aparecen justo debajo de la barra superior
+      document.documentElement.style.setProperty("--alto-hud", (hud && !hud.classList.contains("oculto") ? altoHud : 0) + "px");
     }
 
     crearAnimaciones() {

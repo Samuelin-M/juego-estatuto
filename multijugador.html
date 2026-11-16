@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1d2b2a">
+  <title>Carrera Docente — Multijugador</title>
+  <link rel="stylesheet" href="estilos.css?v=20261115e">
+  <link rel="stylesheet" href="multijugador.css?v=20261115e">
+</head>
+<body class="modo-mapa">
+  <div id="juego"></div>
+
+  <!-- Barra superior durante la partida -->
+  <header id="hud" class="oculto">
+    <div class="hud-cabecera">
+      <span id="hud-avatar">🧑‍🏫</span>
+      <div id="hud-objetivo">Objetivo</div>
+    </div>
+    <div class="hud-fila chips">
+      <span class="chip chip-puntos" id="hud-puntos">⭐ 0</span>
+      <span class="chip" id="hud-proceso">📋 1/6</span>
+      <span class="chip" id="hud-reloj">⏱ 0:00</span>
+    </div>
+    <div id="hud-ranking" class="ranking"></div>
+  </header>
+
+  <div id="aviso"></div>
+
+  <!-- Panel de los procesos y cartas -->
+  <section id="interior" class="oculto">
+    <div class="int-caja">
+      <div class="int-cabecera">
+        <span id="int-icono">🏛️</span>
+        <div>
+          <div id="int-nombre">Edificio</div>
+          <div id="int-arts"></div>
+        </div>
+      </div>
+      <div id="int-cuerpo"></div>
+    </div>
+  </section>
+
+  <!-- Pantallas de sala, espera y podio (las arma multijugador.js) -->
+  <section id="mj-pantalla" class="pantalla">
+    <div class="pantalla-caja" id="mj-caja"></div>
+  </section>
+
+  <script src="lib/phaser.min.js?v=20261115e"></script>
+  <script src="lib/qrcode.js?v=20261115e"></script>
+  <script src="lib/supabase.min.js?v=20261115e"></script>
+  <script src="config.js?v=20261115e"></script>
+  <script src="mapa.js?v=20261115e"></script>
+  <script src="contenido.js?v=20261115e"></script>
+  <script src="sprites.js?v=20261115e"></script>
+  <script src="red.js?v=20261115e"></script>
+  <script src="multijugador.js?v=20261115e"></script>
+</body>
+</html>

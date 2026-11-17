@@ -19,9 +19,9 @@ const CONTENIDO = {
   subtitulo: "Juego de competencia docente sobre el Estatuto de Profesionalización Docente (Decreto 1278 de 2002, arts. 8–40).",
   creditos: "Ética · UIS",
 
-  // TEMPORAL, PARA PROBAR: pinta la respuesta correcta de verde y las
-  // incorrectas de rojo. Cuando estén las preguntas definitivas → false.
-  mostrarCorrectas: true,
+  // Para probar: true pinta la respuesta correcta de verde y las incorrectas de rojo.
+  // Con las preguntas definitivas va en false.
+  mostrarCorrectas: false,
 
   // Años que dura una partida (en los dos modos)
   aniosDeJuego: 5,
@@ -227,708 +227,628 @@ const CONTENIDO = {
   },
 
   /* ======================= BANCOS DE PREGUNTAS ======================= */
-  // Por ahora son EJEMPLOS ("Pregunta 1", "Respuesta A"...) para que el grupo
-  // escriba las definitivas. Cada pregunta y situación lleva:
-  //   anio:       en qué año de la carrera sale (1 a 5). Nunca sale en otro año.
-  //   dificultad: 1 fácil, 2 intermedia, 3 difícil. En el multijugador las difíciles dan más puntos.
-  //   opciones:   la correcta se marca con  correcta: true  (pueden ser 2, 3 o más opciones).
-  //   articulo y explicacion: el artículo del estatuto y por qué esa es la respuesta.
-  // Las situaciones (colegio y cartas) llevan además, en cada opción, sus "efectos"
-  // sobre los indicadores y la "consecuencia" de esa decisión. Esos efectos son los
-  // que luego cuentan en la evaluación anual (no hay examen: art. 32 a 34).
-  //
-  // CUÁNTAS HACER (para que a cada jugador le salgan distintas y de las tres dificultades):
-  //   aptitudes, psicotecnica, entrevista: 6 de cada una (2 fáciles, 2 intermedias, 2 difíciles), año 1
-  //   colegio:      3 por año (1 de cada dificultad)  → 15 en total
-  //   cartas:       6 por año (2 de cada dificultad)  → 30 en total
-  //   secretaria:   3 por año en los años 4 y 5       → 6 en total (evaluación de competencias)
+  // Escritos por el grupo (PDF "Banco de preguntas", 16 nov 2026). Cada ficha lleva su código del PDF.
+  // Salen al azar, nunca de un año más avanzado, y no se repiten mientras queden otras.
+  //   anio:       en qué año sale (si no hay de ese año, sale una del año anterior más cercano)
+  //   dificultad: 1 fácil, 2 intermedia, 3 difícil. Entre más veces se hace lo mismo (repetir el
+  //               concurso, otro año de clases en el mismo cargo…), más difíciles salen.
+  //   cargo:      en colegio y cartas: Docente, Coordinador o Rector (el cargo que tenga el jugador)
+  //   opciones:   en las preguntas, la correcta lleva  correcta: true
+  //   efectos:    lo que cambia en los indicadores al escoger esa opción (cuenta para la evaluación anual)
+  //   articulo / explicacion: lo que se muestra después de responder
+  // Las fichas que en el PDF dicen "Por redactar" no están: cuando las escriban, se agregan aquí
+  // con el mismo formato (el juego ya las usa solas).
   bancos: {
-    // CONCURSO DOCENTE (año 1): una pregunta de cada prueba.
-    // En el modo individual, si se repite el concurso salen preguntas nuevas y más
-    // difíciles: 1.er intento → fáciles; 2.º → intermedias; del 3.º en adelante → difíciles.
+    // CONCURSO DOCENTE (año 1): una pregunta de cada prueba. Si se repite el concurso salen
+    // preguntas nuevas y más difíciles: 1.er intento → fáciles; 2.º → intermedias; 3.º en adelante → difíciles.
     aptitudes: [
       {
-        anio: 1, dificultad: 1,
-        texto: "Pregunta 1 (aptitudes · fácil): aquí va el enunciado.",
+        codigo: "APT-01", anio: 1, dificultad: 1,
+        texto: "Durante una clase, un docente nota que varios estudiantes no comprenden el tema explicado. ¿Qué debería hacer el docente?",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Continuar con el tema para no retrasar las clases. El docente debe cumplir con su planificación.", correcta: false },
+          { texto: "Explicar nuevamente utilizando otros ejemplos. Cada estudiante aprende a su propio ritmo.", correcta: true },
+          { texto: "Dejar una actividad adicional para la casa. La práctica individual ayuda a reforzar lo aprendido.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 34 · Estrategias pedagógicas"
       },
       {
-        anio: 1, dificultad: 1,
-        texto: "Pregunta 2 (aptitudes · fácil): aquí va el enunciado.",
+        codigo: "APT-02", anio: 1, dificultad: 1,
+        texto: "Cuatro pintores de brocha gorda pintan una casa en 6 días. ¿Cuántos días demorarán 12 pintores en pintar una casa igual a ésta, si mantienen ese ritmo?",
         opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "2 días", correcta: true },
+          { texto: "4 días", correcta: false },
+          { texto: "6 días", correcta: false },
+          { texto: "12 días", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 9, lit. d · Razonamiento matemático"
       },
       {
-        anio: 1, dificultad: 2,
-        texto: "Pregunta 3 (aptitudes · intermedia): aquí va el enunciado.",
+        codigo: "APT-03", anio: 1, dificultad: 2,
+        texto: "Los 3/5 de la mitad de mi edad son 12 años. Entonces, tengo",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
+          { texto: "20 años.", correcta: false },
+          { texto: "40 años.", correcta: true },
+          { texto: "60 años.", correcta: false },
+          { texto: "80 años.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 9, lit. d · Razonamiento matemático"
       },
       {
-        anio: 1, dificultad: 2,
-        texto: "Pregunta 4 (aptitudes · intermedia): aquí va el enunciado.",
+        codigo: "APT-04", anio: 1, dificultad: 2,
+        texto: "Un estudiante obtiene una calificación baja en una evaluación y afirma que el examen fue demasiado difícil. ¿Cuál debería ser la primera acción del docente?",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Revisar los errores del estudiante y explicarle cómo mejorar. La evaluación también permite identificar dificultades.", correcta: true },
+          { texto: "Mantener la calificación sin discutirla. Las evaluaciones deben conservar su objetividad.", correcta: false },
+          { texto: "Darle otra oportunidad con una evaluación más sencilla. Es importante que el estudiante no pierda la motivación.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 34 · Habilidades de evaluación"
       },
       {
-        anio: 1, dificultad: 3,
-        texto: "Pregunta 5 (aptitudes · difícil): aquí va el enunciado.",
+        codigo: "APT-05", anio: 1, dificultad: 3,
+        texto: "En una institución educativa se propone realizar un proyecto grupal. Sin embargo, algunos estudiantes no participan y dejan todo el trabajo a sus compañeros. ¿Qué estrategia debería implementar el docente?",
         opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Permitir que los estudiantes más responsables terminen el trabajo. Así se garantiza la entrega del proyecto.", correcta: false },
+          { texto: "Asignar una calificación grupal sin hacer distinciones. Todos pertenecen al mismo equipo.", correcta: false },
+          { texto: "Distribuir responsabilidades y hacer seguimiento a la participación. Cada estudiante debe contribuir al aprendizaje colectivo.", correcta: true }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 34 · Manejo del grupo"
       },
       {
-        anio: 1, dificultad: 3,
-        texto: "Pregunta 6 (aptitudes · difícil): aquí va el enunciado.",
+        codigo: "APT-06", anio: 1, dificultad: 3,
+        texto: "El triplo de la suma de dos números es 63, y el número mayor es 6 veces el menor. Entonces, el número mayor es",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
+          { texto: "9", correcta: false },
+          { texto: "18", correcta: true },
+          { texto: "27", correcta: false },
+          { texto: "42", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 9, lit. d · Razonamiento matemático"
       }
     ],
+
     psicotecnica: [
       {
-        anio: 1, dificultad: 1,
-        texto: "Pregunta 1 (psicotecnica · fácil): aquí va el enunciado.",
+        codigo: "PSI-01", anio: 1, dificultad: 1,
+        texto: "Durante una reunión de docentes, un compañero critica públicamente una de tus estrategias de enseñanza. ¿Cómo reaccionarías?",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Escucharía su opinión y analizaría si sus observaciones pueden ayudarme a mejorar.", correcta: true },
+          { texto: "Le explicaría por qué considero que mi estrategia es correcta, sin cambiar mi decisión.", correcta: false },
+          { texto: "Ignoraría sus comentarios y evitaría trabajar con él en futuras actividades.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 39 · Respeto y comunicación entre colegas"
       },
       {
-        anio: 1, dificultad: 1,
-        texto: "Pregunta 2 (psicotecnica · fácil): aquí va el enunciado.",
+        codigo: "PSI-02", anio: 1, dificultad: 1,
+        texto: "Usted percibe que una estudiante es introvertida y su actitud la aísla del resto de sus compañeros. ¿Qué estrategia emplearía para facilitarle la integración al grupo?",
         opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Aumentaría la frecuencia de actividades en las que los estudiantes expongan y trabajen en grupo.", correcta: true },
+          { texto: "Persuadiría a la estudiante para que participe en el grupo de teatro del colegio.", correcta: false },
+          { texto: "La designaría como líder de un pequeño grupo de trabajo, de acuerdo con sus fortalezas académicas.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 34 · Relaciones dentro del grupo"
       },
       {
-        anio: 1, dificultad: 2,
-        texto: "Pregunta 3 (psicotecnica · intermedia): aquí va el enunciado.",
+        codigo: "PSI-03", anio: 1, dificultad: 2,
+        texto: "En el salón de clases hay un estudiante con bajo rendimiento, y cada vez que pregunta o solicita una explicación es ridiculizado por un grupo de estudiantes. ¿Cómo le haría saber a este grupo que su comportamiento es inadecuado?",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
+          { texto: "Explicaría que esta es una falta que se sanciona de acuerdo con el Manual de convivencia.", correcta: false },
+          { texto: "Le llamaría la atención al grupo de estudiantes frente a la clase y le exigiría que se excusara ante su compañero.", correcta: false },
+          { texto: "Preguntaría frente a la clase, ¿cómo se sentirían ustedes si fueran ridiculizados?", correcta: true }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 39 · Dignidad y respeto del estudiante"
       },
       {
-        anio: 1, dificultad: 2,
-        texto: "Pregunta 4 (psicotecnica · intermedia): aquí va el enunciado.",
+        codigo: "PSI-04", anio: 1, dificultad: 2,
+        texto: "Los estudiantes de grado 11.º deben presentar por parejas un proyecto de investigación escolar como requisito de grado. Si usted es el encargado de guiarlos en este proceso, ¿qué estrategia usaría para supervisar el trabajo de los estudiantes?",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Organizaría un cronograma con tiempos y tareas específicos.", correcta: false },
+          { texto: "Programaría tutorías para revisar los avances del proyecto.", correcta: true },
+          { texto: "Tomaría tiempo de mi clase para monitorearlos.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 34 · Seguimiento pedagógico"
       },
       {
-        anio: 1, dificultad: 3,
-        texto: "Pregunta 5 (psicotecnica · difícil): aquí va el enunciado.",
+        codigo: "PSI-05", anio: 1, dificultad: 3,
+        texto: "Usted nota que en la institución educativa se presentan agresiones verbales entre grupos de estudiantes que pertenecen a barras de diferentes equipos de fútbol. En este contexto, ¿qué actividad consideraría pertinente para propiciar la sana convivencia entre los estudiantes?",
         opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Prohibir el uso de objetos afines a equipos de fútbol y obligaría a ocultar tatuajes relacionados con favoritismos deportivos para evitar señalamientos.", correcta: false },
+          { texto: "Organizar un partido con estudiantes hinchas de distintos equipos y fomentaría su integración asignándolos a un mismo equipo.", correcta: true },
+          { texto: "Emplear el tiempo de algunas clases para ver partidos de los equipos de fútbol, siempre y cuando los estudiantes se abstengan de emitir agresiones verbales.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 39 · Respeto y convivencia"
       },
       {
-        anio: 1, dificultad: 3,
-        texto: "Pregunta 6 (psicotecnica · difícil): aquí va el enunciado.",
+        codigo: "PSI-06", anio: 1, dificultad: 3,
+        texto: "El colegio ofrece proyectos para el manejo del tiempo libre con énfasis en música, danzas y artes. Los docentes deben realizar la distribución de los estudiantes para cada énfasis. ¿Qué propuesta haría para efectuar esa distribución?",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
+          { texto: "Nombrar a dos estudiantes por curso, con quienes tomaría decisiones respecto a la distribución de sus compañeros y luego publicaría las listas.", correcta: false },
+          { texto: "Presentar una muestra de lo producido en cada énfasis con docentes y estudiantes vinculados, para que los estudiantes se inscriban de acuerdo con sus intereses.", correcta: true },
+          { texto: "Realizar audiciones con coordinación para evaluar las habilidades de los estudiantes y a partir de ello construiría el listado de cada énfasis.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 40 · Práctica centrada en los estudiantes"
       }
     ],
+
     entrevista: [
       {
-        anio: 1, dificultad: 1,
-        texto: "Pregunta 1 (entrevista · fácil): aquí va el enunciado.",
+        codigo: "ENT-01", anio: 1, dificultad: 1,
+        texto: "Durante la entrevista, uno de los evaluadores te pregunta: ¿Cuál consideras que es el principal propósito de un docente dentro de la sociedad?",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Transmitir conocimientos y garantizar que los estudiantes obtengan buenos resultados académicos.", correcta: false },
+          { texto: "Contribuir a la formación integral de los estudiantes, promoviendo el aprendizaje y su desarrollo como personas.", correcta: true },
+          { texto: "Mantener el orden en el aula y asegurar que los estudiantes cumplan las normas establecidas.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 40 · Sentido de la profesión docente"
       },
       {
-        anio: 1, dificultad: 1,
-        texto: "Pregunta 2 (entrevista · fácil): aquí va el enunciado.",
+        codigo: "ENT-02", anio: 1, dificultad: 1,
+        texto: "El entrevistador te pregunta cómo actuarías si descubrieras que tus métodos de enseñanza no están dando los resultados esperados. ¿Qué responderías?",
         opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Mantendría mi metodología, pues considero que los estudiantes deben adaptarse a las exigencias del docente.", correcta: false },
+          { texto: "Revisaría los resultados y buscaría nuevas estrategias para mejorar el aprendizaje de mis estudiantes.", correcta: true },
+          { texto: "Consultaría con otros docentes para conocer sus experiencias y aplicar alguna de sus metodologías.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 34 · Mejora de las estrategias de enseñanza"
       },
       {
-        anio: 1, dificultad: 2,
-        texto: "Pregunta 3 (entrevista · intermedia): aquí va el enunciado.",
+        codigo: "ENT-03", anio: 1, dificultad: 2,
+        texto: "Durante la entrevista, te preguntan cómo contribuirías a una institución educativa que recibe estudiantes con diferentes condiciones sociales, culturales y económicas. ¿Cuál sería tu respuesta?",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
+          { texto: "Aplicaría las mismas estrategias y exigencias para todos, garantizando que reciban una educación igualitaria.", correcta: false },
+          { texto: "Buscaría conocer las características de los estudiantes y adaptaría mis estrategias para favorecer su participación y aprendizaje.", correcta: true },
+          { texto: "Me concentraría en los estudiantes que tengan mejores condiciones para alcanzar los objetivos académicos de la institución.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 40 · Compromiso con los contextos socioculturales"
       },
       {
-        anio: 1, dificultad: 2,
-        texto: "Pregunta 4 (entrevista · intermedia): aquí va el enunciado.",
+        codigo: "ENT-04", anio: 1, dificultad: 2,
+        texto: "Situación de una docente. Algunos estudiantes manifiestan preocupación por una docente que presenta cambios en su comportamiento, posibles señales de maltrato físico y dificultades en el desarrollo de sus clases. ¿Cuál debería ser su primera actuación ante esta situación?",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Informar a las directivas sobre la situación para que determinen las medidas institucionales correspondientes.", correcta: false },
+          { texto: "Escuchar a los estudiantes, valorar la situación y buscar un acercamiento confidencial con la docente.", correcta: true },
+          { texto: "Citar a los familiares de la docente para conocer posibles situaciones personales que expliquen su comportamiento.", correcta: false },
+          { texto: "Realizar una observación de las clases para determinar si las dificultades pedagógicas están relacionadas con su situación personal.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 39 · Dignidad y solidaridad con una colega"
       },
       {
-        anio: 1, dificultad: 3,
-        texto: "Pregunta 5 (entrevista · difícil): aquí va el enunciado.",
+        codigo: "ENT-05", anio: 1, dificultad: 3,
+        texto: "Situación de intoxicación escolar. Después del descanso, varios estudiantes presentan síntomas de intoxicación. Al indagar, usted descubre que algunos consumieron brownies que un compañero llevó al colegio y que, al parecer, contienen marihuana. ¿Cuál debería ser su actuación ante esta situación?",
         opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Informar a las directivas sobre la situación y esperar sus indicaciones antes de intervenir.", correcta: false },
+          { texto: "Atender la situación de los estudiantes afectados y comunicar lo sucedido a las directivas.", correcta: true },
+          { texto: "Dialogar con el estudiante que llevó los brownies para conocer el origen de la sustancia.", correcta: false },
+          { texto: "Reunir al grupo para reflexionar sobre los riesgos del consumo de sustancias psicoactivas.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 39 y art. 40 · Responsabilidad y cuidado del estudiante"
       },
       {
-        anio: 1, dificultad: 3,
-        texto: "Pregunta 6 (entrevista · difícil): aquí va el enunciado.",
+        codigo: "ENT-06", anio: 1, dificultad: 3,
+        texto: "¿Qué lo motiva a querer desempeñarse como docente?",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+          { texto: "La estabilidad laboral y la posibilidad de obtener mejores condiciones económicas a través de la carrera docente", correcta: false },
+          { texto: "La posibilidad de contribuir a la formación integral de los estudiantes, promoviendo valores, pensamiento crítico y compromiso social.", correcta: true },
+          { texto: "El interés por transmitir los conocimientos adquiridos durante mi formación académica y cumplir con los contenidos establecidos en el currículo.", correcta: false }
+        ]
       }
     ],
-    // SITUACIONES EN EL COLEGIO: una por año.
+
+    // SITUACIONES DEL COLEGIO: una por año, según el cargo (docente, coordinador o rector).
+    // La correcta sube el desempeño y la popularidad; las demás los bajan.
     colegio: [
       {
-        anio: 1, dificultad: 1, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 1 (año 1 · fácil): aquí va la situación.",
+        codigo: "COL-D-1-01", cargo: "Docente", anio: 1, dificultad: 1,
+        texto: "Usted ha observado que en uno de sus grupos se presentan constantemente discusiones entre estudiantes. A pesar de haber llamado la atención en varias ocasiones, la situación continúa afectando el desarrollo de las clases. ¿Cómo debería proceder?",
         opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+          { texto: "Aplicar las mismas medidas disciplinarias a todos los estudiantes involucrados, sin revisar las circunstancias de cada situación.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Identificar las causas de los conflictos y aplicar estrategias que permitan mejorar las relaciones y la convivencia del grupo.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Evitar intervenir para no interrumpir el desarrollo de los contenidos académicos.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
+        ],
+        articulo: "Art. 34 · Manejo de las relaciones del grupo"
+      },
+      {
+        codigo: "COL-D-2-01", cargo: "Docente", anio: 2, dificultad: 1,
+        texto: "En su institución se ha implementado una plataforma digital para apoyar las actividades académicas. Usted tiene dificultades para utilizarla y algunos estudiantes han manifestado problemas con las actividades asignadas. ¿Cómo debería actuar?",
+        opciones: [
+          { texto: "Continuar utilizando únicamente los métodos anteriores y evitar la plataforma.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Buscar orientación y participar en actividades de capacitación que le permitan aprender a utilizar adecuadamente la herramienta.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Dejar que los estudiantes se encarguen de resolver los problemas de la plataforma.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
+        ],
+        articulo: "Art. 38 · Formación y actualización profesional"
+      },
+      {
+        codigo: "COL-D-3-01", cargo: "Docente", anio: 3, dificultad: 1,
+        texto: "Al finalizar el año escolar, usted lleva cuatro meses trabajando en la institución. Sin embargo, todavía no ha recibido información sobre su evaluación de desempeño. Un compañero le comenta que únicamente deben evaluar a quienes llevan más de seis meses trabajando en el colegio. ¿Qué debería hacer?",
+        opciones: [
+          { texto: "Esperar hasta cumplir seis meses, pues ese es el tiempo mínimo exigido.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Consultar el procedimiento de evaluación, teniendo en cuenta que el estatuto contempla la evaluación de quienes hayan servido en el establecimiento por un término superior a tres meses durante el año académico.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Solicitar que lo excluyan de la evaluación, pues no ha trabajado durante todo el año escolar.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
+        ],
+        articulo: "Art. 32 · Tiempo mínimo para la evaluación anual de desempeño"
+      },
+      {
+        codigo: "COL-D-4-01", cargo: "Docente", anio: 4, dificultad: 1,
+        texto: "Al revisar los resultados del período, usted descubre que una parte considerable de sus estudiantes no alcanzó los objetivos de aprendizaje establecidos. El rector le solicita analizar la situación y proponer acciones para mejorar los resultados. ¿Qué debería hacer?",
+        opciones: [
+          { texto: "Revisar los resultados, identificar las dificultades y establecer estrategias de mejoramiento para sus estudiantes.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Atribuir los resultados exclusivamente a la falta de compromiso de los estudiantes.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Mantener la planeación sin modificaciones, pues considera que los contenidos ya fueron explicados.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
+        ],
+        articulo: "Art. 30 y art. 34 · Resultados y mejoramiento del desempeño docente"
+      },
+      {
+        codigo: "COL-D-5-01", cargo: "Docente", anio: 5, dificultad: 1,
+        texto: "En una reunión institucional se informa que se elegirá un representante de los docentes para participar en uno de los órganos del gobierno escolar. Algunos compañeros le sugieren no involucrarse porque consideran que estas actividades no hacen parte de las responsabilidades de un profesor. ¿Qué debería hacer?",
+        opciones: [
+          { texto: "Participar en el proceso de elección o postularse como representante si está interesado.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Evitar involucrarse, ya que las decisiones institucionales corresponden exclusivamente al rector.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Participar únicamente si recibe una compensación económica por asumir esa responsabilidad.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
+        ],
+        articulo: "Art. 37, lit. d · Participación en el gobierno escolar"
+      },
+      {
+        codigo: "COL-C-2-01", cargo: "Coordinador", anio: 2, dificultad: 1,
+        texto: "Al revisar los resultados institucionales, usted observa que varios grupos presentan dificultades en sus procesos académicos y que los índices de promoción han disminuido. El rector le solicita colaborar en la revisión de la situación y en la búsqueda de alternativas de mejoramiento. ¿Qué debería hacer?",
+        opciones: [
+          { texto: "Considerar que los resultados académicos son responsabilidad exclusiva de los docentes y no involucrarse.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Analizar la información disponible y colaborar en la identificación de estrategias que permitan mejorar los resultados institucionales.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Modificar los registros de promoción para mejorar los indicadores de la institución.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
+        ],
+        articulo: "Art. 34, par. · Organización y eficiencia en la gestión directiva"
+      },
+      {
+        codigo: "COL-C-3-01", cargo: "Coordinador", anio: 3, dificultad: 1,
+        texto: "El rector está realizando la evaluación anual de desempeño de los docentes y le solicita información sobre uno de ellos. Durante el año, usted ha observado que el profesor cumple adecuadamente con sus clases, pero también ha recibido reportes sobre algunas dificultades en la organización de sus actividades institucionales. ¿Cómo debería actuar?",
+        opciones: [
+          { texto: "Compartir la información que conoce, procurando que sea objetiva y que incluya tanto los aspectos positivos como las dificultades observadas.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Informar únicamente sobre las dificultades para que el rector tenga razones suficientes para asignar una calificación baja.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Negarse a colaborar, pues considera que no tiene ninguna responsabilidad en los procesos de evaluación.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
+        ],
+        articulo: "Art. 26 · Apoyo de los superiores en la evaluación permanente"
+      },
+      {
+        codigo: "COL-C-4-01", cargo: "Coordinador", anio: 4, dificultad: 1,
+        texto: "Durante la organización de las actividades académicas de la institución, usted descubre que varias actividades programadas por diferentes áreas se realizarán al mismo tiempo y que algunos grupos tendrán dificultades para participar en todas ellas. ¿Cómo debería proceder?",
+        opciones: [
+          { texto: "Reunirse con los docentes responsables, revisar la programación y coordinar los ajustes necesarios para evitar cruces entre las actividades.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Modificar unilateralmente los horarios y comunicar los cambios una vez estén establecidos.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Permitir que cada área resuelva los inconvenientes por su cuenta, pues la organización de sus actividades es responsabilidad de los docentes.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
         ]
       },
       {
-        anio: 1, dificultad: 2, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 2 (año 1 · intermedia): aquí va la situación.",
+        codigo: "COL-C-5-01", cargo: "Coordinador", anio: 5, dificultad: 1,
+        texto: "Durante el seguimiento a las actividades institucionales, usted observa que algunos docentes no están cumpliendo los acuerdos establecidos en las reuniones de área. Esta situación está generando diferencias en la manera de desarrollar las actividades con los estudiantes. ¿Qué debería hacer?",
         opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+          { texto: "Informar inmediatamente al rector y dejar que él se encargue de resolver la situación.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Dialogar con los docentes, recordar los acuerdos establecidos e identificar las dificultades que están impidiendo su cumplimiento. Posteriormente, realizar seguimiento a los compromisos.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Permitir que cada docente trabaje según su propio criterio, aunque esto implique apartarse de los acuerdos institucionales.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
         ]
       },
       {
-        anio: 1, dificultad: 3, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 3 (año 1 · difícil): aquí va la situación.",
+        codigo: "COL-R-3-01", cargo: "Rector", anio: 3, dificultad: 1,
+        texto: "Al iniciar el período académico, usted establece una nueva organización de los horarios para mejorar el desarrollo de las actividades escolares. Sin embargo, varios docentes manifiestan su inconformidad y se niegan a cumplir el nuevo horario. ¿Cómo debería proceder?",
         opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+          { texto: "Mantener la decisión sin escuchar las observaciones de los docentes, pues la organización de los horarios es responsabilidad exclusiva de la rectoría.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Escuchar las inquietudes de los docentes, explicar las razones de la reorganización y revisar si es necesario realizar ajustes que no afecten el funcionamiento institucional.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Retirar la propuesta y permitir que cada docente organice libremente sus horarios.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
+        ],
+        articulo: "Art. 34, par. · Liderazgo y resultados en la evaluación directiva"
+      },
+      {
+        codigo: "COL-R-4-01", cargo: "Rector", anio: 4, dificultad: 1,
+        texto: "Durante una revisión de los recursos institucionales, usted descubre que algunos docentes están utilizando equipos y materiales del colegio para actividades personales que no tienen relación con sus funciones. ¿Qué debería hacer?",
+        opciones: [
+          { texto: "Recordar las normas sobre el uso de los recursos institucionales, establecer medidas de seguimiento y garantizar que estos se destinen a las actividades propias del colegio.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Permitir que continúen utilizándolos, siempre que los devuelvan en buen estado.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Prohibir temporalmente el uso de todos los recursos institucionales para evitar que se repita la situación.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
         ]
       },
       {
-        anio: 2, dificultad: 1, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 4 (año 2 · fácil): aquí va la situación.",
+        codigo: "COL-R-5-01", cargo: "Rector", anio: 5, dificultad: 1,
+        texto: "La institución está organizando una salida pedagógica para varios grupos. Durante la planeación, usted descubre que algunos estudiantes no podrán participar debido a las condiciones económicas de sus familias. ¿Qué debería hacer?",
         opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 2, dificultad: 2, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 5 (año 2 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 2, dificultad: 3, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 6 (año 2 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 3, dificultad: 1, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 7 (año 3 · fácil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 3, dificultad: 2, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 8 (año 3 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 3, dificultad: 3, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 9 (año 3 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 4, dificultad: 1, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 10 (año 4 · fácil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 4, dificultad: 2, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 11 (año 4 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 4, dificultad: 3, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 12 (año 4 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 5, dificultad: 1, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 13 (año 5 · fácil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 5, dificultad: 2, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 14 (año 5 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 5, dificultad: 3, personaje: "Personaje de la situación",
-        texto: "Situación en el colegio 15 (año 5 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
+          { texto: "Buscar alternativas para que todos los estudiantes puedan participar, gestionando los apoyos necesarios y procurando que las condiciones económicas no se conviertan en un impedimento.", correcta: true, efectos: { desempeno: 8, popularidad: 4 } },
+          { texto: "Mantener la actividad tal como fue planeada, pues la participación depende de las posibilidades de cada familia.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } },
+          { texto: "Cancelar la salida pedagógica para evitar diferencias entre los estudiantes.", correcta: false, efectos: { desempeno: -6, popularidad: -3 } }
+        ],
+        articulo: "Art. 40 · Educación como bien público y práctica centrada en estudiantes"
       }
     ],
-    // SITUACIONES INESPERADAS (cartas que se buscan en el mapa): dos por año.
+
+    // SITUACIONES INESPERADAS (cartas): dos por año, según el cargo. No hay respuesta correcta:
+    // cada decisión tiene sus efectos. La que va con el estatuto sube el desempeño (y suele bajar la
+    // popularidad); la cómoda o popular sube la popularidad y baja el desempeño.
     cartas: [
       {
-        anio: 1, dificultad: 1, tipo: "Personal", titulo: "Situación inesperada 1",
-        texto: "Situación inesperada 1 (año 1 · fácil): aquí va la situación.",
+        codigo: "CAR-D-1-01", cargo: "Docente", anio: 1, dificultad: 1,
+        texto: "Un directivo amigo suyo le comenta que un docente de la institución está próximo a retirarse definitivamente y le ofrece ocupar su cargo mediante un encargo. Sin embargo, usted sabe que existe una lista vigente de elegibles para esa vacante. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+          { texto: "Aceptar la propuesta de su amigo y asumir el cargo.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Rechazar la propuesta y solicitar que se respete el proceso de selección establecido.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 14 y art. 15 · Encargo con lista de elegibles vigente"
+      },
+      {
+        codigo: "CAR-D-1-02", cargo: "Docente", anio: 1, dificultad: 1,
+        texto: "Suponga que una estudiante, visiblemente afectada, acusa a un colega suyo de acosarla mediante medios digitales. Como evidencia, presenta capturas de pantalla de conversaciones de WhatsApp. Sin embargo, existen sospechas de que dichas imágenes pudieron ser manipuladas mediante herramientas de inteligencia artificial. ¿Cómo actuaría ante esta situación?",
+        opciones: [
+          { texto: "Hacer pública la acusación y las capturas de pantalla para alertar a la comunidad educativa y prevenir posibles situaciones similares.", efectos: { popularidad: 4, desempeno: -6 } },
+          { texto: "Remitir el caso a las directivas para evaluar las evidencias y determinar las acciones correspondientes.", efectos: { popularidad: -3, desempeno: 7 } }
         ]
       },
       {
-        anio: 1, dificultad: 1, tipo: "Institucional", titulo: "Situación inesperada 2",
-        texto: "Situación inesperada 2 (año 1 · fácil): aquí va la situación.",
+        codigo: "CAR-D-2-01", cargo: "Docente", anio: 2, dificultad: 1,
+        texto: "Usted observa que algunos compañeros llegan tarde con frecuencia y omiten explicar ciertos temas del programa académico, afectando la formación de los estudiantes. Además, nota que estas prácticas comienzan a normalizarse entre el personal docente. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+          { texto: "Aprovechar la situación y \"relajarse\", total no habrá consecuencias.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Mantener el cumplimiento de sus responsabilidades y comunicar la situación a las directivas para que se tomen las medidas correspondientes.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 17 · Primera instancia de una reclamación de carrera",
+        explicacion: "Sí hay consecuencias. El artículo 17 explica que la carrera docente se orientará a retener a los servidores más idóneos."
+      },
+      {
+        codigo: "CAR-D-2-02", cargo: "Docente", anio: 2, dificultad: 1,
+        texto: "Usted tiene a su cargo un curso de 30 estudiantes. Observa que 20 comprenden los temas con facilidad y están listos para continuar, mientras que los otros 10 requieren explicaciones adicionales. ¿Qué decisión tomaría?",
+        opciones: [
+          { texto: "Continuar con los nuevos contenidos, priorizando el ritmo de aprendizaje de la mayoría, aunque algunos estudiantes tengan dificultades para seguir las clases.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Dedicar más tiempo a reforzar los temas vistos, procurando que todos puedan comprenderlos, aunque esto implique ralentizar el avance del curso", efectos: { desempeno: 7, popularidad: -3 } }
         ]
       },
       {
-        anio: 1, dificultad: 2, tipo: "Laboral", titulo: "Situación inesperada 3",
-        texto: "Situación inesperada 3 (año 1 · intermedia): aquí va la situación.",
+        codigo: "CAR-D-3-01", cargo: "Docente", anio: 3, dificultad: 1,
+        texto: "La secretaría de educación ofrece una capacitación sobre nuevas metodologías de enseñanza. Sin embargo, considera que su experiencia profesional es suficiente y que participar le quitaría tiempo. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+          { texto: "Participar en la capacitación para actualizar sus conocimientos y mejorar su práctica docente.", efectos: { formacion: 5, desempeno: 4 } },
+          { texto: "Rechazar la capacitación porque considera que puede aprender nuevas metodologías por su cuenta.", efectos: { desempeno: -4 } }
+        ],
+        articulo: "Art. 38 · Actualización docente"
+      },
+      {
+        codigo: "CAR-D-3-03", cargo: "Docente", anio: 3, dificultad: 2,
+        texto: "Un estudiante publica un video en el que usted le grita durante una clase por utilizar lenguaje ofensivo. El video se viraliza y las directivas le solicitan explicaciones. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Defender su actuación y justificar el llamado de atención.", efectos: { desempeno: -6, popularidad: -2 } },
+          { texto: "Ofrecer disculpas públicamente por la forma en que se dirigió al estudiante.", efectos: { desempeno: 5, popularidad: 2 } }
+        ],
+        articulo: "Art. 39 · Respeto en el trato al estudiante"
+      },
+      {
+        codigo: "CAR-D-4-01", cargo: "Docente", anio: 4, dificultad: 1,
+        texto: "Al finalizar el año escolar, recibe una evaluación de desempeño con una calificación baja. Considera que algunos criterios fueron aplicados incorrectamente y que no se tuvieron en cuenta varias de sus actividades. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Presentar un recurso de reposición o apelación para solicitar la revisión de la evaluación.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Aceptar la calificación y esperar hasta la siguiente evaluación para mejorar su desempeño.", efectos: { desempeno: -6, popularidad: 4 } }
+        ],
+        articulo: "Art. 36, par. · Recursos contra la evaluación de desempeño"
+      },
+      {
+        codigo: "CAR-D-4-02", cargo: "Docente", anio: 4, dificultad: 1,
+        texto: "Usted se entera de que algunos directivos de la institución, amigos cercanos suyos, tienen contactos en la Secretaría de Educación que expiden certificados de formación y experiencia de manera irregular. Estos le proponen gestionar documentos similares para que usted pueda acreditar requisitos que le permitan acceder a un ascenso o una mejor reubicación salarial. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Aceptar la propuesta, aprovechando los contactos y las facilidades que le ofrecen, considerando que esto representa una oportunidad para mejorar sus condiciones laborales.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Rechazar la propuesta y abstenerse de participar en cualquier trámite que implique presentar documentos o certificaciones que no correspondan a la realidad.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 21 · Títulos que permiten aspirar a otro grado"
+      },
+      {
+        codigo: "CAR-D-5-01", cargo: "Docente", anio: 5, dificultad: 1,
+        texto: "Usted es elegido como representante de los docentes ante uno de los órganos del gobierno escolar. Sin embargo, un directivo considera innecesaria su participación y le pide que no asista a las reuniones. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Respetar la decisión del directivo para evitar problemas dentro de la institución.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Defender su derecho a participar en el gobierno escolar como representante de los docentes.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 37, lit. d · Participación en el gobierno escolar"
+      },
+      {
+        codigo: "CAR-D-5-02", cargo: "Docente", anio: 5, dificultad: 1,
+        texto: "Una compañera docente obliga a un estudiante con sobrepeso a recibir clases sentado en el suelo. Usted presencia lo sucedido. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Denunciar la actuación de su compañera ante las directivas.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Hablar directamente con ella para resolver el problema sin involucrar a las directivas.", efectos: { desempeno: -6, popularidad: 4 } }
+        ],
+        articulo: "Art. 39 · Dignidad y respeto"
+      },
+      {
+        codigo: "CAR-D-5-03", cargo: "Docente", anio: 5, dificultad: 2,
+        texto: "Un compañero le pide modificar las calificaciones de algunos estudiantes para evitar problemas con los padres de familia. Le asegura que nadie descubrirá el cambio. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Negarse a modificar las calificaciones y mantener los resultados obtenidos por los estudiantes.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Aceptar modificar algunas calificaciones para evitar conflictos con las familias.", efectos: { desempeno: -6, popularidad: 4 } }
+        ],
+        articulo: "Art. 39 · Honestidad y transparencia en las calificaciones"
+      },
+      {
+        codigo: "CAR-D-5-04", cargo: "Docente", anio: 5, dificultad: 2,
+        texto: "La rectora establece normas estrictas sobre el aspecto personal de los estudiantes, prohibiendo el cabello largo, los piercings y los tintes. Usted considera que algunas medidas afectan la libre expresión de los jóvenes. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Apoyar las normas establecidas por la rectoría.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Manifestar su desacuerdo y defender la libre expresión de los estudiantes.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 39 · Dignidad y respeto de derechos"
+      },
+      {
+        codigo: "CAR-D-5-05", cargo: "Docente", anio: 5, dificultad: 3,
+        texto: "Un compañero docente le confiesa que mantiene acercamientos románticos con algunas de sus alumnas, quienes también han manifestado interés por él. Le pide que no revele esta situación. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Informar de la situación a las directivas del colegio.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Guardar silencio y dejar pasar la situación.", efectos: { desempeno: -6, popularidad: 4 } }
+        ],
+        articulo: "Art. 39 y art. 40 · Dignidad e idoneidad moral"
+      },
+      {
+        codigo: "CAR-D-5-06", cargo: "Docente", anio: 5, dificultad: 3,
+        texto: "Durante una clase, usted aborda las manifestaciones sociales del país y expone su posición frente a ellas. Un padre de familia lo acusa de adoctrinar a sus estudiantes y exige explicaciones al colegio. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Defender la libertad de abordar temas sociales y políticos en clase.", efectos: { desempeno: 4, popularidad: -4 } },
+          { texto: "Evitar tratar temas políticos para prevenir nuevos conflictos.", efectos: { desempeno: -3, popularidad: 4 } }
+        ],
+        articulo: "Art. 40 · Práctica docente y contexto sociocultural"
+      },
+      {
+        codigo: "CAR-C-2-01", cargo: "Coordinador", anio: 2, dificultad: 1,
+        texto: "Usted es el coordinador de una institución educativa y participa en el proceso de evaluación del desempeño docente. Uno de los profesores, amigo cercano de su familia, ha presentado incumplimientos recurrentes, como llegar tarde y no desarrollar algunos contenidos del programa. Su desempeño ha sido insatisfactorio y lo excluiría del escalafón docente. El profesor le pide que intervenga para evitar recibir una calificación insatisfactoria debido a su relación personal. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Interceder ante el rector para que se le asigne una calificación favorable, teniendo en cuenta su relación personal y las posibles consecuencias laborales.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Presentar un informe objetivo sobre el desempeño del docente, sustentado en las evidencias disponibles, dejando que la evaluación siga los procedimientos institucionales.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 24 · Causales de exclusión del escalafón"
+      },
+      {
+        codigo: "CAR-C-2-02", cargo: "Coordinador", anio: 2, dificultad: 1,
+        texto: "Un docente que anteriormente fue retirado del cargo de coordinador por bajo rendimiento solicita participar en el proceso para ocupar una nueva vacante. Argumenta que su experiencia previa le permite desempeñar nuevamente esa función. Usted debe decidir entre:",
+        opciones: [
+          { texto: "Respaldar su aspiración ante la Secretaría de Educación, destacando su experiencia y los aprendizajes obtenidos.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Abstenerse de intervenir en su postulación, dado que no es elegible para el cargo.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 25 · Reingreso por concurso tras la exclusión"
+      },
+      {
+        codigo: "CAR-C-3-01", cargo: "Coordinador", anio: 3, dificultad: 1,
+        texto: "El rector le solicita observar una clase de un docente para aportar información sobre su desempeño. Sin embargo, el docente es un amigo cercano y le pide que informe únicamente aspectos positivos de su trabajo. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Realizar la observación con objetividad y entregar información basada en lo que realmente evidenció.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Resaltar principalmente los aspectos positivos para evitar perjudicar a su compañero.", efectos: { desempeno: -6, popularidad: 4 } }
+        ],
+        articulo: "Art. 29, lit. a, y art. 33 · Objetividad y observación de clase"
+      },
+      {
+        codigo: "CAR-C-3-03", cargo: "Coordinador", anio: 3, dificultad: 2,
+        texto: "Durante el acompañamiento a los docentes, identifica que uno de ellos presenta dificultades para manejar su grupo. El docente reconoce el problema, pero manifiesta que no sabe cómo solucionarlo. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Recomendarle estrategias de mejoramiento y promover su participación en actividades de capacitación.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Informar al rector sobre las dificultades y esperar que él determine qué medidas tomar.", efectos: { desempeno: -6, popularidad: 4 } }
+        ],
+        articulo: "Art. 28, lits. a y c, y art. 38 · Mejora y capacitación"
+      },
+      {
+        codigo: "CAR-C-3-05", cargo: "Coordinador", anio: 3, dificultad: 3,
+        texto: "El rector le solicita aportar información sobre el desempeño de un docente con quien mantiene una buena relación. El docente le pide que destaque únicamente sus aspectos positivos, aunque usted sabe que algunos aspectos de su trabajo necesitan mejorar. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Entregar una valoración objetiva, basada en las evidencias de su trabajo, aunque pueda afectar la relación con su compañero.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Destacar principalmente los aspectos positivos porque considera que también deben reconocerse sus esfuerzos.", efectos: { desempeno: -6, popularidad: 4 } }
+        ],
+        articulo: "Art. 26, art. 29, lit. a, y art. 33 · Aporte objetivo de evidencias"
+      },
+      {
+        codigo: "CAR-C-4-01", cargo: "Coordinador", anio: 4, dificultad: 1,
+        texto: "La institución participará en un concurso intercolegial que exige proyectos sostenibles representativos de su contexto cultural. Algunos docentes proponen seleccionar únicamente estudiantes con alto rendimiento académico para garantizar la calidad del proyecto, mientras otros defienden la participación de todos los interesados.",
+        opciones: [
+          { texto: "Seleccionar estudiantes destacados y delegarles la formulación del proyecto.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Promover espacios de participación para construir colectivamente el proyecto y distribuir responsabilidades.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 35 · Liderazgo y dirección como competencias directivas"
+      },
+      {
+        codigo: "CAR-C-4-02", cargo: "Coordinador", anio: 4, dificultad: 1,
+        texto: "Un grupo de estudiantes organiza una manifestación para expresar su inconformidad frente a cambios administrativos y académicos implementados por la rectoría. La protesta afecta el desarrollo de las clases y algunos docentes solicitan la intervención del coordinador. Ante esta situación, usted debe decidir entre:",
+        opciones: [
+          { texto: "Intervenir para restablecer las actividades académicas, solicitando a los estudiantes suspender la manifestación y utilizar los mecanismos institucionales para presentar sus inconformidades.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Respetar la manifestación pacífica de los estudiantes, reconociendo su derecho a expresar libremente sus inconformidades.", efectos: { popularidad: 4, desempeno: -6 } }
         ]
       },
       {
-        anio: 1, dificultad: 2, tipo: "Personal", titulo: "Situación inesperada 4",
-        texto: "Situación inesperada 4 (año 1 · intermedia): aquí va la situación.",
+        codigo: "CAR-C-5-01", cargo: "Coordinador", anio: 5, dificultad: 1,
+        texto: "Después de varios años como coordinador, recibe una propuesta para ocupar el cargo de rector sin participar en un concurso. Le aseguran que su experiencia es suficiente para asumir la responsabilidad. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+          { texto: "Aceptar el cargo porque ya cuenta con experiencia en funciones directivas.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Solicitar que se respete el procedimiento de selección y participar en el concurso correspondiente si cumple los requisitos.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 8 y art. 10, lit. c · Concurso y requisitos para rector"
+      },
+      {
+        codigo: "CAR-C-5-02", cargo: "Coordinador", anio: 5, dificultad: 1,
+        texto: "Un docente falta reiteradamente a sus clases sin presentar justificación. Ante esta situación, el coordinador decide imponerle una sanción económica equivalente a dos salarios mínimos legales mensuales vigentes. Esta actuación es:",
+        opciones: [
+          { texto: "Correcta, pues las ausencias injustificadas deben ser sancionadas.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Incorrecta, se está extralimitando en sus funciones.", efectos: { desempeno: 7, popularidad: -3 } }
         ]
       },
       {
-        anio: 1, dificultad: 3, tipo: "Institucional", titulo: "Situación inesperada 5",
-        texto: "Situación inesperada 5 (año 1 · difícil): aquí va la situación.",
+        codigo: "CAR-R-3-01", cargo: "Rector", anio: 3, dificultad: 1,
+        texto: "Al finalizar el año escolar, descubre que varios docentes todavía no han sido evaluados. Algunos llevan más de tres meses trabajando en la institución y usted considera que realizar todas las evaluaciones tomará demasiado tiempo. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+          { texto: "Realizar las evaluaciones correspondientes antes de finalizar el proceso académico.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Evaluar únicamente a los docentes que considera más importantes para el funcionamiento de la institución.", efectos: { desempeno: -6, popularidad: 4 } }
+        ],
+        articulo: "Art. 32 · Evaluación anual y tiempo mínimo servido"
+      },
+      {
+        codigo: "CAR-R-3-03", cargo: "Rector", anio: 3, dificultad: 2,
+        texto: "Durante la evaluación de desempeño de un docente, recibe comentarios positivos de varios padres de familia. Sin embargo, las observaciones de clase y los resultados de sus estudiantes muestran algunas dificultades importantes. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Asignar una calificación favorable porque la mayoría de los padres está satisfecha con el docente.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Considerar diferentes instrumentos y evidencias para realizar una evaluación objetiva.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 29 y art. 33 · Objetividad y uso de varias evidencias"
+      },
+      {
+        codigo: "CAR-R-3-05", cargo: "Rector", anio: 3, dificultad: 3,
+        texto: "Al finalizar el año, la institución presenta bajos resultados académicos y un aumento en la deserción escolar. Usted considera que estos resultados no reflejan todo el trabajo realizado durante su gestión. ¿Qué decide hacer?",
+        opciones: [
+          { texto: "Presentar evidencias de su gestión, incluyendo las acciones de liderazgo, organización y mejoramiento institucional, junto con los resultados obtenidos.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Justificar los resultados negativos argumentando que el rendimiento académico depende principalmente del trabajo de los docentes.", efectos: { desempeno: -6, popularidad: 4 } }
+        ],
+        articulo: "Art. 34, par. · Liderazgo, retención y resultados"
+      },
+      {
+        codigo: "CAR-R-4-01", cargo: "Rector", anio: 4, dificultad: 1,
+        texto: "Casualmente, usted observa a una persona aparentemente en situación de vulnerabilidad que ingresó a la institución con un supuesto permiso del rector. Esta persona recorre los salones contando una historia personal y solicitando contribuciones económicas a los estudiantes. Tiempo después, la encuentra realizando la misma actividad en otra institución educativa. Como coordinador, usted debe decidir entre:",
+        opciones: [
+          { texto: "Confrontar a la persona y cuestionar su actuación, manifestándole su preocupación por la utilización de los estudiantes para obtener beneficios económicos.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Abstenerse de involucrarse, evitando generar problemas.", efectos: { desempeno: -6, popularidad: 4 } }
         ]
       },
       {
-        anio: 1, dificultad: 3, tipo: "Laboral", titulo: "Situación inesperada 6",
-        texto: "Situación inesperada 6 (año 1 · difícil): aquí va la situación.",
+        codigo: "CAR-R-4-02", cargo: "Rector", anio: 4, dificultad: 1,
+        texto: "En una conversación informal entre docentes, algunos comentan su interés en postularse al cargo de coordinador. Durante la conversación, varios manifiestan que un docente con estudios de maestría sería más apto para desempeñar el cargo y menosprecian la trayectoria de otro compañero que, aunque es normalista superior, cuenta con una amplia experiencia y una hoja de vida destacada. Estas afirmaciones son:",
         opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
+          { texto: "Correctas, pues para optar al cargo de coordinador se requiere mínimo estudio de maestría.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Erradas, una persona con formación de normalista superior puede optar al cargo.", efectos: { desempeno: 7, popularidad: -3 } }
+        ],
+        articulo: "Art. 21 · Afinidad de una maestría o doctorado con el cargo"
       },
       {
-        anio: 2, dificultad: 1, tipo: "Personal", titulo: "Situación inesperada 7",
-        texto: "Situación inesperada 7 (año 2 · fácil): aquí va la situación.",
+        codigo: "CAR-R-5-01", cargo: "Rector", anio: 5, dificultad: 1,
+        texto: "Un docente cercano a usted solicita que su evaluación de desempeño sea favorable, aunque no haya cumplido satisfactoriamente varias de sus responsabilidades. Le recuerda que ambos mantienen una buena amistad desde hace años. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
+          { texto: "Realizar la evaluación de acuerdo con las evidencias y los criterios establecidos.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Otorgar una calificación favorable para conservar una buena relación con el docente.", efectos: { desempeno: -6, popularidad: 4 } }
+        ],
+        articulo: "Art. 29, lit. a, y art. 39 · Objetividad frente al favoritismo"
       },
       {
-        anio: 2, dificultad: 1, tipo: "Institucional", titulo: "Situación inesperada 8",
-        texto: "Situación inesperada 8 (año 2 · fácil): aquí va la situación.",
+        codigo: "CAR-R-5-02", cargo: "Rector", anio: 5, dificultad: 1,
+        texto: "Una estudiante perteneciente a una comunidad indígena manifiesta, junto con sus padres, que algunos docentes le exigen responder exclusivamente en español durante las clases, sin permitirle expresarse en su lengua materna. Los padres consideran que esta situación desconoce su identidad cultural y constituye una forma de discriminación. Ante esta situación, usted, como coordinador, decide:",
         opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 2, dificultad: 2, tipo: "Laboral", titulo: "Situación inesperada 9",
-        texto: "Situación inesperada 9 (año 2 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 2, dificultad: 2, tipo: "Personal", titulo: "Situación inesperada 10",
-        texto: "Situación inesperada 10 (año 2 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 2, dificultad: 3, tipo: "Institucional", titulo: "Situación inesperada 11",
-        texto: "Situación inesperada 11 (año 2 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 2, dificultad: 3, tipo: "Laboral", titulo: "Situación inesperada 12",
-        texto: "Situación inesperada 12 (año 2 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 3, dificultad: 1, tipo: "Personal", titulo: "Situación inesperada 13",
-        texto: "Situación inesperada 13 (año 3 · fácil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 3, dificultad: 1, tipo: "Institucional", titulo: "Situación inesperada 14",
-        texto: "Situación inesperada 14 (año 3 · fácil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 3, dificultad: 2, tipo: "Laboral", titulo: "Situación inesperada 15",
-        texto: "Situación inesperada 15 (año 3 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 3, dificultad: 2, tipo: "Personal", titulo: "Situación inesperada 16",
-        texto: "Situación inesperada 16 (año 3 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 3, dificultad: 3, tipo: "Institucional", titulo: "Situación inesperada 17",
-        texto: "Situación inesperada 17 (año 3 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 3, dificultad: 3, tipo: "Laboral", titulo: "Situación inesperada 18",
-        texto: "Situación inesperada 18 (año 3 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 4, dificultad: 1, tipo: "Personal", titulo: "Situación inesperada 19",
-        texto: "Situación inesperada 19 (año 4 · fácil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 4, dificultad: 1, tipo: "Institucional", titulo: "Situación inesperada 20",
-        texto: "Situación inesperada 20 (año 4 · fácil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 4, dificultad: 2, tipo: "Laboral", titulo: "Situación inesperada 21",
-        texto: "Situación inesperada 21 (año 4 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 4, dificultad: 2, tipo: "Personal", titulo: "Situación inesperada 22",
-        texto: "Situación inesperada 22 (año 4 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 4, dificultad: 3, tipo: "Institucional", titulo: "Situación inesperada 23",
-        texto: "Situación inesperada 23 (año 4 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 4, dificultad: 3, tipo: "Laboral", titulo: "Situación inesperada 24",
-        texto: "Situación inesperada 24 (año 4 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 5, dificultad: 1, tipo: "Personal", titulo: "Situación inesperada 25",
-        texto: "Situación inesperada 25 (año 5 · fácil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 5, dificultad: 1, tipo: "Institucional", titulo: "Situación inesperada 26",
-        texto: "Situación inesperada 26 (año 5 · fácil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 5, dificultad: 2, tipo: "Laboral", titulo: "Situación inesperada 27",
-        texto: "Situación inesperada 27 (año 5 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 5, dificultad: 2, tipo: "Personal", titulo: "Situación inesperada 28",
-        texto: "Situación inesperada 28 (año 5 · intermedia): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 5, dificultad: 3, tipo: "Institucional", titulo: "Situación inesperada 29",
-        texto: "Situación inesperada 29 (año 5 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
-        ]
-      },
-      {
-        anio: 5, dificultad: 3, tipo: "Laboral", titulo: "Situación inesperada 30",
-        texto: "Situación inesperada 30 (año 5 · difícil): aquí va la situación.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true, efectos: { desempeno: 8, popularidad: 4 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta B", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." },
-          { texto: "Respuesta C", correcta: false, efectos: { desempeno: -6, popularidad: -3 }, consecuencia: "Aquí va lo que pasa por esta decisión.", articulo: "Art. —", explicacion: "Aquí va la explicación según el estatuto." }
+          { texto: "Respaldar a los docentes, considerando que el castellano es el idioma oficial de Colombia y debe ser priorizado en las actividades académicas.", efectos: { desempeno: -6, popularidad: 4 } },
+          { texto: "Respaldar a la estudiante y a sus padres, reconociendo su derecho a expresar su identidad cultural y lingüística en el entorno educativo.", efectos: { desempeno: 7, popularidad: -3 } }
         ]
       }
     ],
-    // SECRETARÍA (escalafón, ascenso, directivos: años 4 y 5). En el individual se usa
-    // en la evaluación de competencias.
+
+    // SECRETARÍA: la pregunta de la evaluación de competencias (ascenso o reubicación), años 4 y 5.
     secretaria: [
       {
-        anio: 4, dificultad: 1,
-        texto: "Pregunta 1 (secretaría · año 4 · fácil): aquí va el enunciado.",
+        codigo: "SEC-4-01", anio: 4, dificultad: 1,
+        texto: "¿Cuál de los siguientes es el organismo encargado de elegir al contralor General de la República?",
         opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "El Congreso de la República.", correcta: true },
+          { texto: "La Corte Constitucional.", correcta: false },
+          { texto: "La Presidencia de la República.", correcta: false }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 36, num. 2 · Puntaje superior al 80 % y condición de candidato",
+        explicacion: "Según el artículo 36, numeral 2, quienes obtienen más del 80 % en la evaluación de competencias son candidatos a ascender en el escalafón o a reubicarse en un nivel salarial superior, si reúnen los requisitos."
       },
       {
-        anio: 4, dificultad: 2,
-        texto: "Pregunta 2 (secretaría · año 4 · intermedia): aquí va el enunciado.",
+        codigo: "SEC-5-01", anio: 5, dificultad: 1,
+        texto: "Para realizar el seguimiento del avance de un proyecto a mediano plazo en la institución, usted prefiere:",
         opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
+          { texto: "Encargarse de revisar personalmente cada producto del proyecto para tener un mayor control sobre cómo se está desarrollando.", correcta: false },
+          { texto: "Delegar en una persona de confianza el seguimiento del mismo para tener tiempo de desarrollar otras actividades.", correcta: false },
+          { texto: "Crear criterios de cumplimiento en el equipo de trabajo para hacer un seguimiento indirecto del proyecto.", correcta: true }
         ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        anio: 4, dificultad: 3,
-        texto: "Pregunta 3 (secretaría · año 4 · difícil): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        anio: 5, dificultad: 1,
-        texto: "Pregunta 4 (secretaría · año 5 · fácil): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: true },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        anio: 5, dificultad: 2,
-        texto: "Pregunta 5 (secretaría · año 5 · intermedia): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: true },
-          { texto: "Respuesta C", correcta: false }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
-      },
-      {
-        anio: 5, dificultad: 3,
-        texto: "Pregunta 6 (secretaría · año 5 · difícil): aquí va el enunciado.",
-        opciones: [
-          { texto: "Respuesta A", correcta: false },
-          { texto: "Respuesta B", correcta: false },
-          { texto: "Respuesta C", correcta: true }
-        ],
-        articulo: "Art. —",
-        explicacion: "Aquí va la explicación de la respuesta correcta."
+        articulo: "Art. 23 · Límite presupuestal de ascensos y reubicaciones"
       }
     ]
   },

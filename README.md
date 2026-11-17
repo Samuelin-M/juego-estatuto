@@ -8,21 +8,24 @@ Sigue la *Propuesta de dinámica* del grupo y las sugerencias del documento de �
 
 **Jugar:** https://samuelin-m.github.io/juego-estatuto/
 
-## Preguntas y situaciones (lo que falta escribir)
+## Preguntas y situaciones
 
-Todo está en `contenido.js`, dentro de `bancos`. Por ahora son **ejemplos** ("Pregunta 1", "Respuesta A", "Situación inesperada 1"…) para que el grupo escriba las definitivas. Cada pregunta y situación lleva el **año** en que sale (1 a 5, nunca sale en otro año) y su **dificultad** (1 fácil, 2 intermedia, 3 difícil).
+Están en `contenido.js`, dentro de `bancos`, copiadas del PDF *Banco de preguntas* del grupo (cada una con su código: `APT-01`, `COL-D-1-01`, `CAR-C-4-02`…). Las fichas que en el PDF dicen "Por redactar" todavía no están; cuando las escriban se agregan con el mismo formato y el juego las usa solas.
 
-| Banco | Dónde sale | Cuántas hacer |
+| Banco | Dónde sale | Hay |
 |---|---|---|
 | `aptitudes`, `psicotecnica`, `entrevista` | Concurso docente (año 1) | 6 de cada una: 2 fáciles, 2 intermedias, 2 difíciles |
-| `colegio` | Una situación de clase por año | 3 por año (una de cada dificultad) → 15 |
-| `cartas` | Dos situaciones inesperadas por año (se buscan en el mapa) | 6 por año (dos de cada dificultad) → 30 |
-| `secretaria` | Evaluación de competencias para ascender o reubicarse (años 4 y 5) | 3 por año → 6 |
+| `colegio` | Una situación de clase por año, según el cargo (docente, coordinador o rector) | 12 (una por año y cargo) |
+| `cartas` | Dos situaciones inesperadas por año, según el cargo (se buscan en el mapa) | 30 |
+| `secretaria` | Evaluación de competencias para ascender o reubicarse (años 4 y 5) | 2 |
 
-- La respuesta correcta se marca con `correcta: true`. Pueden tener 2, 3 o más opciones.
-- **Modo prueba:** con `mostrarCorrectas: true` la correcta sale en verde y las incorrectas en rojo. Cuando estén las preguntas definitivas, cambiarlo a `false`.
-- **La evaluación anual no tiene preguntas** (así es en la realidad, arts. 32 a 34): sale de lo que se hizo en el año. Por eso los `efectos` de cada opción de las situaciones (colegio y cartas) son los que suben o bajan la evaluación.
-- Si el jugador repite el concurso, le salen preguntas nuevas y más difíciles.
+- **Salen al azar**, nunca de un año más avanzado y sin repetirse mientras queden otras.
+- **Entre más se repite algo, más difícil:** el concurso (1.er intento fáciles, 2.º intermedias, 3.º difíciles), la evaluación de competencias y las situaciones de cada cargo (cada año en el mismo cargo sube la dificultad, si hay de esa dificultad).
+- **Preguntas** (concurso, colegio y Secretaría): la correcta lleva `correcta: true`.
+- **Cartas (situaciones inesperadas): no hay respuesta correcta.** Cada opción tiene sus `efectos` sobre los indicadores: la que va con el estatuto sube el desempeño (y suele bajar la popularidad); la cómoda o popular sube la popularidad y baja el desempeño.
+- **La evaluación anual no tiene preguntas** (arts. 32 a 34): sale de los indicadores, que cambian con lo que se decide en el colegio y en las cartas.
+- **La Universidad no tiene preguntas:** solo sirve para formarse (pedagogía, especialización, maestría…).
+- `mostrarCorrectas: true` pinta la correcta de verde y las demás de rojo (solo para probar).
 - El tema de cada año (y sus artículos) está en `anios`, dentro de `contenido.js`.
 
 ## El juego

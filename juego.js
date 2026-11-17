@@ -62,6 +62,8 @@
       laboral: "aspirante",       // aspirante | provisional | prueba | carrera | excluido
       oportunidad: null,
       cargo: "Docente",
+      veces: {},                 // cuántas veces ha hecho cada cosa (para subir la dificultad)
+      intentosCompetencias: 0,
       grado: null,
       nivel: "A",
       aniosDesdeAscenso: 0,
@@ -367,7 +369,8 @@
       puntosGanados(c);
       if (op.consecuencia) c.append(globo(op.consecuencia));
       c.append(chipsEfectos(aplicar(op.efectos)));
-      if (op.articulo || op.explicacion) c.append(tarjetaArticulo(op.articulo, op.explicacion));
+      const art = op.articulo || item.articulo, exp = op.explicacion || item.explicacion;
+      if (art || exp) c.append(tarjetaArticulo(art, exp));
       accionVolver("Volver al mapa", alTerminar);
     }));
     const ap = Comun.avisoPrueba(); if (ap) cuerpo.append(ap);
@@ -525,8 +528,22 @@
 
   /* ------------------------------ colegio ------------------------------ */
 
+  // Saca una situación del cargo del jugador (si no hay de su cargo, de docente).
+  // Entre más veces la ha hecho en ese cargo, más difícil: cada "porNivel" veces sube un nivel.
+  function sacarDeCargo(banco, porNivel) {
+    E.veces = E.veces || {};
+    const clave = banco + "-" + E.cargo;
+    const veces = E.veces[clave] || 0;
+    const nivel = Math.min(3, 1 + Math.floor(veces / porNivel));
+    const deCargo = (cargo) => (it) => (it.cargo || "Docente") === cargo;
+    const hay = Comun.banco(banco).some((it) => deCargo(E.cargo)(it) && (it.anio || 1) <= E.anio);
+    const item = Comun.sacar(banco, usadas(banco), nivel, null, E.anio, deCargo(hay ? E.cargo : "Docente"));
+    E.veces[clave] = veces + 1;
+    return item;
+  }
+
   function colegio() {
-    const item = Comun.sacar("colegio", usadas("colegio"), null, null, E.anio);
+    const item = sacarDeCargo("colegio", 1);
     const c = abrirPanel("colegio", "Colegio", `Año ${E.anio} · ${textoSituacion()}`);
     situacion(c, item, npcDe(item && item.personaje), () => { E.hechos.colegio = true; }, "Clase en el colegio", "colegio");
   }
@@ -631,9 +648,12 @@
   function competencias() {
     const K = C.progresion.competencias;
     const base = Math.round(Object.entries(K.pesos).reduce((s, [k, w]) => s + E.ind[k] * w, 0));
-    const q = Comun.sacar("secretaria", usadas("secretaria"), null, null, E.anio);
+    // Cada vez que se vuelve a presentar, la pregunta es más difícil
+    E.intentosCompetencias = (E.intentosCompetencias || 0) + 1;
+    const q = Comun.sacar("secretaria", usadas("secretaria"), Math.min(3, E.intentosCompetencias), null, E.anio);
     let c = limpiarCuerpo();
     c.append(quien("Evaluación de competencias", "funcionaria"));
+    c.append(tarjetaArticulo(K.articulo, K.explicacion));
     c.append(globo(`Tu base por formación, desempeño y experiencia es ${base}. Responde esta pregunta: si aciertas sumas 10 puntos, si fallas pierdes 10.`));
     if (!q) { c.append(globo("Todavía no hay preguntas en el banco \"secretaria\".")); accionVolver(); return; }
     c.append(nodo("div", "enunciado", q.texto));
@@ -1175,7 +1195,7 @@
       }));
       for (let i = 0; i < n && libres.length; i++) {
         const pos = libres.splice(Math.floor(Math.random() * libres.length), 1)[0];
-        const item = Comun.sacar("cartas", usadas("cartas"), null, null, E.anio);
+        const item = sacarDeCargo("cartas", 2);
         E.cartas.push({ item, x: pos.x, y: pos.y, tomada: false });
       }
       this.dibujarCartas();

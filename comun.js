@@ -15,11 +15,14 @@ const Comun = (function () {
   //   r:      función de azar (0..1)
   //   anio:   año de la carrera. Solo salen preguntas de ese año; si el banco no tiene
   //           de ese año, de los años anteriores (nunca de años más avanzados).
-  function sacar(nombre, usadas, nivel, r, anio) {
+  //   filtro: opcional, para quedarse solo con algunas (por ejemplo, las del cargo del jugador)
+  function sacar(nombre, usadas, nivel, r, anio, filtro) {
     r = r || Math.random;
     const lista = banco(nombre);
-    if (!lista.length) return null;
     let base = lista.map((_, i) => i);
+    if (filtro) base = base.filter((i) => filtro(lista[i]));
+    if (anio) base = base.filter((i) => (lista[i].anio || 1) <= anio);
+    if (!base.length) return null;
     if (anio) {
       const anioDe = (i) => lista[i].anio || anio;          // sin "anio" sirve para cualquier año
       const exactas = base.filter((i) => anioDe(i) === anio);

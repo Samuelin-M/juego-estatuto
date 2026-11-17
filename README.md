@@ -22,9 +22,11 @@ Están en `contenido.js`, dentro de `bancos`, copiadas del PDF *Banco de pregunt
 - **Salen al azar**, nunca de un año más avanzado y sin repetirse mientras queden otras.
 - **Entre más se repite algo, más difícil:** el concurso (1.er intento fáciles, 2.º intermedias, 3.º difíciles), la evaluación de competencias y las situaciones de cada cargo (cada año en el mismo cargo sube la dificultad, si hay de esa dificultad).
 - **Preguntas** (concurso, colegio y Secretaría): la correcta lleva `correcta: true`.
-- **Cartas (situaciones inesperadas): no hay respuesta correcta.** Cada opción tiene sus `efectos` sobre los indicadores: la que va con el estatuto sube el desempeño (y suele bajar la popularidad); la cómoda o popular sube la popularidad y baja el desempeño.
+- **Cartas (situaciones inesperadas): no hay respuesta correcta.** Cada opción tiene sus `efectos` sobre los indicadores: la que va con el estatuto sube el desempeño (+6) y baja un poco la popularidad (−2); la cómoda o popular sube la popularidad (+4) y baja el desempeño (−6).
+- **Artículo relacionado:** cada pregunta y situación muestra su artículo antes de responder. Si el jugador no sabe, puede ir a consultarlo con el **bibliotecario del estatuto** (en la plaza) y volver: la pregunta lo espera igual. Después de responder se muestra la explicación del artículo.
+- **Enciclopedia del estatuto** (`articulos` en `contenido.js`): los artículos 8 a 40 explicados en pocas palabras, según el texto vigente del Decreto 1278. El contador de la barra de arriba muestra cuántos de los 33 ha visto el jugador.
 - **La evaluación anual no tiene preguntas** (arts. 32 a 34): sale de los indicadores, que cambian con lo que se decide en el colegio y en las cartas.
-- **La Universidad no tiene preguntas:** solo sirve para formarse (pedagogía, especialización, maestría…).
+- **La Universidad no tiene preguntas:** solo sirve para formarse (pedagogía, especialización, maestría…). Quien no es licenciado (Valentina) debe inscribirse en pedagogía o en una especialización en educación apenas empieza a trabajar: el art. 12 lo exige para aprobar el periodo de prueba, y la Rectoría no la evalúa hasta que lo haga.
 - `mostrarCorrectas: true` pinta la correcta de verde y las demás de rojo (solo para probar).
 - El tema de cada año (y sus artículos) está en `anios`, dentro de `contenido.js`.
 

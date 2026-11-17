@@ -435,6 +435,8 @@ const Graficos = (function () {
     (CONTENIDO.personajes || []).forEach((pj) => {
       ["abajo", "arriba", "lado"].forEach((dir) => [1, 2, 3].forEach((paso) => textura(scene, `${pj.id}-${dir}${paso}`, Pixel.personaje(pj, dir, paso))));
     });
+    // el bibliotecario del estatuto (personaje quieto en la plaza)
+    ["abajo", "lado"].forEach((dir) => textura(scene, `bibliotecario-${dir}1`, Pixel.personaje({ id: "bibliotecario" }, dir, 1)));
     scene.textures.addCanvas("tex-lista", lienzo(1, 1).c);
   }
 

@@ -100,7 +100,9 @@ const Pixel = (function () {
     rector:      { piel: "#e0b08a", pelo: "#a7a7ad", camisa: "#4a5568", pantalon: "#2f3542", zapato: "#2b2b2b", peinado: "corto" },
     asesora:     { mujer: true, piel: "#8d5a3b", pelo: "#1e1414", camisa: "#e0a458", falda: "#5a3a6a", zapato: "#3a2a2a", peinado: "largo", diadema: "#7bc98f" },
     estudiante:  { piel: "#f0c8a0", pelo: "#6a4020", camisa: "#f3f3ef", pantalon: "#2f3e66", zapato: "#2b2b2b", peinado: "corto", morral: "#c8553d" },
-    jurado:      { piel: "#b97a52", pelo: "#2a2a2a", camisa: "#2f6f8f", pantalon: "#39304a", zapato: "#2b2b2b", peinado: "corto" }
+    jurado:      { piel: "#b97a52", pelo: "#2a2a2a", camisa: "#2f6f8f", pantalon: "#39304a", zapato: "#2b2b2b", peinado: "corto" },
+    // El bibliotecario de la plaza: explica los artículos del estatuto
+    bibliotecario: { piel: "#c99a74", pelo: "#d8d4cc", camisa: "#7a4a2a", pantalon: "#3a3a4a", zapato: "#2b2b2b", peinado: "corto", gafas: true, morral: "#2f6f8f" }
   };
   const esMujer = (pj) => !!(PALETAS[pj && pj.id] || {}).mujer;
 

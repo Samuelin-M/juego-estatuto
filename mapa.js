@@ -41,6 +41,10 @@ const MAPA = {
 
   inicio: { x: 9, y: 22 },
 
+  // El bibliotecario del estatuto: está en la casilla x, y (no se puede pisar) y se le habla
+  // desde la casilla "lugar". Explica los artículos 8 a 40.
+  bibliotecario: { x: 6, y: 12, lugar: { x: 7, y: 12 }, nombre: "Bibliotecario del estatuto" },
+
   // Orden en que se deben visitar los edificios
   orden: ["secretaria", "colegio", "universidad", "rectoria"],
 

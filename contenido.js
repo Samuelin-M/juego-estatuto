@@ -5,9 +5,10 @@
    Basado en la "Propuesta de dinámica" del grupo y en el Decreto 1278 de 2002
    (Estatuto de Profesionalización Docente), artículos 8 a 40.
 
-   PREGUNTAS: están en "bancos" (ver más abajo cuántas hacer de cada una).
-   Por ahora son ejemplos ("Pregunta 1", "Respuesta A"...) para que el grupo
-   escriba las definitivas. La correcta se marca con  correcta: true.
+   PREGUNTAS Y SITUACIONES: están en "bancos", copiadas del PDF "Banco de
+   preguntas" del grupo. En las preguntas, la correcta lleva  correcta: true.
+   ENCICLOPEDIA: en "articulos" están los artículos 8 a 40 explicados (los
+   consulta el bibliotecario del pueblo).
 
    INDICADORES (de 0 a 100): experiencia, formacion, popularidad, desempeno.
    "efectos" suma o resta a esos indicadores, por ejemplo:
@@ -33,6 +34,84 @@ const CONTENIDO = {
     { anio: 3, tema: "Evaluación y formación", articulos: "Arts. 26–34 y 38" },
     { anio: 4, tema: "Competencias, ascenso y reubicación", articulos: "Arts. 20–23, 35 y 36" },
     { anio: 5, tema: "Directivos, derechos y ética", articulos: "Arts. 10, 22, 37, 39 y 40" }
+  ],
+
+  // ENCICLOPEDIA DEL ESTATUTO (la consulta el bibliotecario del pueblo): artículos 8 a 40 del
+  // Decreto Ley 1278 de 2002 explicados en pocas palabras, según el texto vigente.
+  // Las preguntas y situaciones muestran la explicación de los artículos que citan.
+  capitulos: [
+    { nombre: "Ingreso al servicio", desde: 8, hasta: 15 },
+    { nombre: "Carrera y escalafón docente", desde: 16, hasta: 25 },
+    { nombre: "Evaluación", desde: 26, hasta: 36 },
+    { nombre: "Derechos, formación y ética", desde: 37, hasta: 40 }
+  ],
+  articulos: [
+    { num: 8, titulo: "Concurso para ingreso al servicio educativo estatal",
+      texto: "El concurso evalúa las aptitudes, la experiencia, las competencias básicas, las relaciones interpersonales y las condiciones de personalidad de los aspirantes. Con él se decide quién entra a la lista de elegibles y en qué puesto, para tener siempre de dónde llenar las vacantes." },
+    { num: 9, titulo: "Etapas del concurso",
+      texto: "Si no hay lista de elegibles, la entidad territorial abre un concurso público con estas etapas: convocatoria; inscripción; verificación de requisitos; prueba de aptitudes y competencias básicas (escoge a los más idóneos); publicación de resultados; prueba psicotécnica, entrevista y valoración de antecedentes; clasificación, y lista de elegibles en orden de puntaje." },
+    { num: 10, titulo: "Requisitos especiales para los directivos docentes",
+      texto: "Para concursar como director rural se pide título de normalista superior, licenciado o profesional y 4 años de experiencia; para coordinador, título de licenciado o profesional y 5 años; para rector, título de licenciado o profesional y 6 años." },
+    { num: 11, titulo: "Provisión de cargos",
+      texto: "Una vacante se llena con quien ocupa el primer lugar de la lista de elegibles. Solo si esa persona no acepta, se sigue en estricto orden de puntaje, y quien rechaza el nombramiento sale de la lista. Las listas de elegibles valen por 2 años." },
+    { num: 12, titulo: "Nombramiento en período de prueba",
+      texto: "Quien gana el concurso queda en período de prueba hasta terminar el año escolar (si trabajó por lo menos 4 meses). Al final se evalúan su desempeño y sus competencias: si aprueba, adquiere los derechos de carrera y entra al escalafón; si no, sale del servicio y puede volver a concursar. Los profesionales que no son licenciados deben acreditar, al terminar el período de prueba, que cursan o terminaron un posgrado en educación o un programa de pedagogía." },
+    { num: 13, titulo: "Nombramientos provisionales",
+      texto: "Para llenar un cargo de forma temporal se nombra en provisionalidad a alguien que cumpla los requisitos: en vacantes temporales, mientras el titular está separado del cargo (usando la lista de elegibles vigente), o en vacantes definitivas, hasta que llegue alguien del concurso. Para tener derechos de carrera hay que ganar el concurso y aprobar el período de prueba." },
+    { num: 14, titulo: "Encargos",
+      texto: "Hay encargo cuando alguien que ya trabaja en propiedad asume temporalmente otro empleo vacante. Los cargos directivos vacantes pueden cubrirse por encargo con personal de carrera mientras dura la ausencia del titular o mientras se hace el concurso." },
+    { num: 15, titulo: "Prohibición",
+      texto: "No se puede llenar con un provisional ni con un encargo un cargo vacante de manera definitiva si hay lista de elegibles vigente; quien lo haga responde disciplinaria y patrimonialmente. Cuando se agota la lista, hay que convocar un nuevo concurso dentro de los 4 meses siguientes." },
+    { num: 16, titulo: "Carrera docente",
+      texto: "Es el régimen legal que ampara el ejercicio de la profesión docente en el sector estatal. Se basa en el carácter profesional de los educadores, en su idoneidad y en sus competencias; garantiza igualdad de acceso y toma el mérito como base para entrar, permanecer, ser promovido y ascender." },
+    { num: 17, titulo: "Administración y vigilancia de la carrera docente",
+      texto: "La carrera busca atraer y retener a los educadores más idóneos, promover su desarrollo profesional y una remuneración justa, y exige una conducta intachable y un desempeño satisfactorio. La administran las entidades territoriales certificadas, que resuelven los reclamos en primera instancia; la segunda instancia es la Comisión Nacional del Servicio Civil." },
+    { num: 18, titulo: "Ingreso a la carrera",
+      texto: "Tienen los derechos de la carrera docente los educadores estatales que ganan el concurso, aprueban el período de prueba y quedan inscritos en el Escalafón Docente." },
+    { num: 19, titulo: "Escalafón docente",
+      texto: "Es el sistema que clasifica a docentes y directivos según su formación, experiencia, responsabilidad, desempeño y competencias, en grados y niveles que se alcanzan durante la vida laboral y que definen el salario. La idoneidad reúne los conocimientos, habilidades, actitudes, aptitudes, rendimiento y valores necesarios para enseñar." },
+    { num: 20, titulo: "Estructura del escalafón docente",
+      texto: "Tiene 3 grados, según la formación académica, y cada grado tiene 4 niveles salariales (A, B, C y D). Quien aprueba el período de prueba empieza en el nivel A de su grado y, después de 3 años de servicio, puede subir de nivel o de grado si saca en la evaluación de competencias el puntaje del artículo 36." },
+    { num: 21, titulo: "Requisitos para inscripción y ascenso en el escalafón",
+      texto: "Grado 1: ser normalista superior. Grado 2: ser licenciado en educación, o profesional con un programa de pedagogía o una especialización en educación. Grado 3: ser licenciado o profesional con maestría o doctorado en un área afín. En todos hay que haber sido nombrado por concurso y aprobar el período de prueba (o, para ascender, la evaluación de competencias)." },
+    { num: 22, titulo: "Escalafón de directivos docentes",
+      texto: "Los directivos, al aprobar su concurso y su período de prueba, se inscriben en el grado que corresponde a su título, o conservan el que tenían si ya eran docentes del Estado. Pasar a un cargo directivo significa una mejor remuneración." },
+    { num: 23, titulo: "Inscripción y ascenso en el escalafón docente",
+      texto: "Cada entidad territorial lleva el registro de inscripciones y ascensos. Los ascensos y las reubicaciones de nivel se dan cuando la entidad convoca a la evaluación de competencias y se obtiene el puntaje del artículo 36, y nunca pueden superar el presupuesto disponible." },
+    { num: 24, titulo: "Exclusión del escalafón",
+      texto: "Se sale del escalafón por las causas generales de retiro del servicio o por una evaluación de desempeño no satisfactoria. La exclusión por evaluación no satisfactoria trae el retiro del servicio." },
+    { num: 25, titulo: "Reingreso al servicio y al escalafón docente",
+      texto: "Quien fue destituido por orden judicial o fallo disciplinario solo puede volver cuando termine su inhabilidad (o después de 3 años como mínimo), presentando de nuevo el concurso y el período de prueba, y empieza en el nivel A. Quien no aprobó el período de prueba o salió por evaluación no satisfactoria puede concursar en la siguiente convocatoria. El directivo que no aprueba, o que no quiere seguir, vuelve a ser docente si ya lo era." },
+    { num: 26, titulo: "Evaluación",
+      texto: "La carrera docente va unida a la evaluación permanente: cada educador responde por su desempeño y debe someterse a la evaluación. Esta verifica que se mantengan la idoneidad, la calidad y la eficiencia que justifican seguir en el cargo, ascender o subir de nivel." },
+    { num: 27, titulo: "Tipos de evaluación",
+      texto: "Hay por lo menos tres: la evaluación del período de prueba, la evaluación ordinaria anual de desempeño y la evaluación de competencias." },
+    { num: 28, titulo: "Objetivos de la evaluación",
+      texto: "La evaluación busca estimular el compromiso y la formación continua, conocer los méritos del educador frente a los estudiantes y la comunidad, detectar necesidades de capacitación, premiar el buen desempeño con estímulos y decidir con bases objetivas quién sigue, asciende, sube de nivel o sale del servicio." },
+    { num: 29, titulo: "Principios de la evaluación",
+      texto: "Objetividad, confiabilidad, universalidad, pertinencia, transparencia, participación (autoridades, superiores, colegas, consejo directivo, padres y estudiantes) y concurrencia con los logros de los estudiantes o, para los directivos, con los resultados de la institución." },
+    { num: 30, titulo: "Alcance de la evaluación",
+      texto: "Evalúa por lo menos la preparación profesional, el compromiso y las competencias, la aplicación al trabajo, la responsabilidad, la formación alcanzada, la calidad del desempeño, los logros de los estudiantes y los méritos excepcionales." },
+    { num: 31, titulo: "Evaluación de período de prueba",
+      texto: "Al terminar el año académico se evalúan el desempeño y las competencias de quienes entraron ese año (si trabajaron al menos 4 meses). Con 60 % o más quedan inscritos en el escalafón según sus títulos; con menos, los docentes salen del servicio y los directivos que ya eran docentes de carrera vuelven a la docencia." },
+    { num: 32, titulo: "Evaluación de desempeño",
+      texto: "Mide cuánto cumple el docente o directivo con sus funciones y con los resultados. Se hace al terminar cada año escolar a quien haya trabajado más de 3 meses; la hace el rector o director, y a los rectores los evalúa su superior jerárquico." },
+    { num: 33, titulo: "Instrumentos de evaluación de desempeño",
+      texto: "Se pueden usar, entre otros: observación de clases, evaluaciones de superiores y colegas, encuestas a padres y estudiantes, análisis de los logros de los estudiantes, evaluación del consejo directivo, autoevaluación y evaluación de los directivos por parte de los docentes." },
+    { num: 34, titulo: "Aspectos a evaluar en el desempeño",
+      texto: "Estrategias pedagógicas y de evaluación, didáctica del área, resolución de problemas, conocimiento del plan de estudios, actitud hacia los alumnos, manejo de las relaciones del grupo y de la disciplina, compromiso institucional, interés por mejorar la calidad y logro de resultados. Para los directivos también cuentan el liderazgo, la eficiencia, la organización y los resultados de la institución." },
+    { num: 35, titulo: "Evaluación de competencias",
+      texto: "La competencia es una característica de la persona que se relaciona con su buen desempeño en el trabajo. La evaluación de competencias es voluntaria, para los inscritos en el escalafón que quieren ascender de grado o subir de nivel; la convoca la entidad territorial cuando lo considere, sin que pasen más de 6 años entre una y otra." },
+    { num: 36, titulo: "Resultados y consecuencias de las evaluaciones",
+      texto: "Desempeño: el docente con menos de 60 % dos años seguidos sale del escalafón y del servicio; el directivo que venía de la docencia estatal vuelve a ser docente. Competencias: con más de 80 % se es candidato a ascender o a subir de nivel, en estricto orden de puntaje y según el presupuesto. Las evaluaciones de desempeño admiten recursos de reposición y apelación." },
+    { num: 37, titulo: "Derechos",
+      texto: "Además de los de todo servidor público, los docentes y directivos tienen derecho a una remuneración acorde con su formación y desempeño, a asociarse libremente, a permanecer en el cargo mientras su trabajo y su conducta sean satisfactorios, a participar en el gobierno escolar y a las licencias por enfermedad y maternidad." },
+    { num: 38, titulo: "Formación y capacitación docente",
+      texto: "La formación y actualización de los educadores en servicio debe mejorar la calidad de la educación y su crecimiento profesional, sobre todo con profesionalización y especialización para desempeñarse mejor." },
+    { num: 39, titulo: "Principios y valores de la profesión docente",
+      texto: "La profesión docente se basa en la dignidad de todo ser humano y sus derechos fundamentales, el autodesarrollo, la autonomía, la comunicación y la solidaridad, y destaca valores como la responsabilidad, la honestidad, el conocimiento, la justicia, el respeto y la transparencia." },
+    { num: 40, titulo: "Marco ético de la profesión docente",
+      texto: "La docencia entiende la educación como un bien público, centrada en los estudiantes y al servicio de la Nación y la sociedad. Exige idoneidad académica y moral, permite el crecimiento personal y social del educador y del estudiante, y requiere compromiso con los contextos socioculturales donde se enseña." }
   ],
 
   indicadores: {
@@ -557,15 +636,15 @@ const CONTENIDO = {
     ],
 
     // SITUACIONES INESPERADAS (cartas): dos por año, según el cargo. No hay respuesta correcta:
-    // cada decisión tiene sus efectos. La que va con el estatuto sube el desempeño (y suele bajar la
-    // popularidad); la cómoda o popular sube la popularidad y baja el desempeño.
+    // cada decisión tiene sus efectos. La que va con el estatuto sube el desempeño (+6) y baja un poco
+    // la popularidad (−2); la cómoda o popular sube la popularidad (+4) y baja el desempeño (−6).
     cartas: [
       {
         codigo: "CAR-D-1-01", cargo: "Docente", anio: 1, dificultad: 1,
         texto: "Un directivo amigo suyo le comenta que un docente de la institución está próximo a retirarse definitivamente y le ofrece ocupar su cargo mediante un encargo. Sin embargo, usted sabe que existe una lista vigente de elegibles para esa vacante. ¿Qué decide hacer?",
         opciones: [
           { texto: "Aceptar la propuesta de su amigo y asumir el cargo.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Rechazar la propuesta y solicitar que se respete el proceso de selección establecido.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Rechazar la propuesta y solicitar que se respete el proceso de selección establecido.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 14 y art. 15 · Encargo con lista de elegibles vigente"
       },
@@ -574,7 +653,7 @@ const CONTENIDO = {
         texto: "Suponga que una estudiante, visiblemente afectada, acusa a un colega suyo de acosarla mediante medios digitales. Como evidencia, presenta capturas de pantalla de conversaciones de WhatsApp. Sin embargo, existen sospechas de que dichas imágenes pudieron ser manipuladas mediante herramientas de inteligencia artificial. ¿Cómo actuaría ante esta situación?",
         opciones: [
           { texto: "Hacer pública la acusación y las capturas de pantalla para alertar a la comunidad educativa y prevenir posibles situaciones similares.", efectos: { popularidad: 4, desempeno: -6 } },
-          { texto: "Remitir el caso a las directivas para evaluar las evidencias y determinar las acciones correspondientes.", efectos: { popularidad: -3, desempeno: 7 } }
+          { texto: "Remitir el caso a las directivas para evaluar las evidencias y determinar las acciones correspondientes.", efectos: { popularidad: -2, desempeno: 6 } }
         ]
       },
       {
@@ -582,7 +661,7 @@ const CONTENIDO = {
         texto: "Usted observa que algunos compañeros llegan tarde con frecuencia y omiten explicar ciertos temas del programa académico, afectando la formación de los estudiantes. Además, nota que estas prácticas comienzan a normalizarse entre el personal docente. ¿Qué decide hacer?",
         opciones: [
           { texto: "Aprovechar la situación y \"relajarse\", total no habrá consecuencias.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Mantener el cumplimiento de sus responsabilidades y comunicar la situación a las directivas para que se tomen las medidas correspondientes.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Mantener el cumplimiento de sus responsabilidades y comunicar la situación a las directivas para que se tomen las medidas correspondientes.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 17 · Primera instancia de una reclamación de carrera",
         explicacion: "Sí hay consecuencias. El artículo 17 explica que la carrera docente se orientará a retener a los servidores más idóneos."
@@ -592,7 +671,7 @@ const CONTENIDO = {
         texto: "Usted tiene a su cargo un curso de 30 estudiantes. Observa que 20 comprenden los temas con facilidad y están listos para continuar, mientras que los otros 10 requieren explicaciones adicionales. ¿Qué decisión tomaría?",
         opciones: [
           { texto: "Continuar con los nuevos contenidos, priorizando el ritmo de aprendizaje de la mayoría, aunque algunos estudiantes tengan dificultades para seguir las clases.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Dedicar más tiempo a reforzar los temas vistos, procurando que todos puedan comprenderlos, aunque esto implique ralentizar el avance del curso", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Dedicar más tiempo a reforzar los temas vistos, procurando que todos puedan comprenderlos, aunque esto implique ralentizar el avance del curso", efectos: { desempeno: 6, popularidad: -2 } }
         ]
       },
       {
@@ -617,7 +696,7 @@ const CONTENIDO = {
         codigo: "CAR-D-4-01", cargo: "Docente", anio: 4, dificultad: 1,
         texto: "Al finalizar el año escolar, recibe una evaluación de desempeño con una calificación baja. Considera que algunos criterios fueron aplicados incorrectamente y que no se tuvieron en cuenta varias de sus actividades. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Presentar un recurso de reposición o apelación para solicitar la revisión de la evaluación.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Presentar un recurso de reposición o apelación para solicitar la revisión de la evaluación.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Aceptar la calificación y esperar hasta la siguiente evaluación para mejorar su desempeño.", efectos: { desempeno: -6, popularidad: 4 } }
         ],
         articulo: "Art. 36, par. · Recursos contra la evaluación de desempeño"
@@ -627,7 +706,7 @@ const CONTENIDO = {
         texto: "Usted se entera de que algunos directivos de la institución, amigos cercanos suyos, tienen contactos en la Secretaría de Educación que expiden certificados de formación y experiencia de manera irregular. Estos le proponen gestionar documentos similares para que usted pueda acreditar requisitos que le permitan acceder a un ascenso o una mejor reubicación salarial. ¿Qué decide hacer?",
         opciones: [
           { texto: "Aceptar la propuesta, aprovechando los contactos y las facilidades que le ofrecen, considerando que esto representa una oportunidad para mejorar sus condiciones laborales.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Rechazar la propuesta y abstenerse de participar en cualquier trámite que implique presentar documentos o certificaciones que no correspondan a la realidad.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Rechazar la propuesta y abstenerse de participar en cualquier trámite que implique presentar documentos o certificaciones que no correspondan a la realidad.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 21 · Títulos que permiten aspirar a otro grado"
       },
@@ -636,7 +715,7 @@ const CONTENIDO = {
         texto: "Usted es elegido como representante de los docentes ante uno de los órganos del gobierno escolar. Sin embargo, un directivo considera innecesaria su participación y le pide que no asista a las reuniones. ¿Qué decide hacer?",
         opciones: [
           { texto: "Respetar la decisión del directivo para evitar problemas dentro de la institución.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Defender su derecho a participar en el gobierno escolar como representante de los docentes.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Defender su derecho a participar en el gobierno escolar como representante de los docentes.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 37, lit. d · Participación en el gobierno escolar"
       },
@@ -644,7 +723,7 @@ const CONTENIDO = {
         codigo: "CAR-D-5-02", cargo: "Docente", anio: 5, dificultad: 1,
         texto: "Una compañera docente obliga a un estudiante con sobrepeso a recibir clases sentado en el suelo. Usted presencia lo sucedido. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Denunciar la actuación de su compañera ante las directivas.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Denunciar la actuación de su compañera ante las directivas.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Hablar directamente con ella para resolver el problema sin involucrar a las directivas.", efectos: { desempeno: -6, popularidad: 4 } }
         ],
         articulo: "Art. 39 · Dignidad y respeto"
@@ -653,7 +732,7 @@ const CONTENIDO = {
         codigo: "CAR-D-5-03", cargo: "Docente", anio: 5, dificultad: 2,
         texto: "Un compañero le pide modificar las calificaciones de algunos estudiantes para evitar problemas con los padres de familia. Le asegura que nadie descubrirá el cambio. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Negarse a modificar las calificaciones y mantener los resultados obtenidos por los estudiantes.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Negarse a modificar las calificaciones y mantener los resultados obtenidos por los estudiantes.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Aceptar modificar algunas calificaciones para evitar conflictos con las familias.", efectos: { desempeno: -6, popularidad: 4 } }
         ],
         articulo: "Art. 39 · Honestidad y transparencia en las calificaciones"
@@ -663,7 +742,7 @@ const CONTENIDO = {
         texto: "La rectora establece normas estrictas sobre el aspecto personal de los estudiantes, prohibiendo el cabello largo, los piercings y los tintes. Usted considera que algunas medidas afectan la libre expresión de los jóvenes. ¿Qué decide hacer?",
         opciones: [
           { texto: "Apoyar las normas establecidas por la rectoría.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Manifestar su desacuerdo y defender la libre expresión de los estudiantes.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Manifestar su desacuerdo y defender la libre expresión de los estudiantes.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 39 · Dignidad y respeto de derechos"
       },
@@ -671,7 +750,7 @@ const CONTENIDO = {
         codigo: "CAR-D-5-05", cargo: "Docente", anio: 5, dificultad: 3,
         texto: "Un compañero docente le confiesa que mantiene acercamientos románticos con algunas de sus alumnas, quienes también han manifestado interés por él. Le pide que no revele esta situación. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Informar de la situación a las directivas del colegio.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Informar de la situación a las directivas del colegio.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Guardar silencio y dejar pasar la situación.", efectos: { desempeno: -6, popularidad: 4 } }
         ],
         articulo: "Art. 39 y art. 40 · Dignidad e idoneidad moral"
@@ -690,7 +769,7 @@ const CONTENIDO = {
         texto: "Usted es el coordinador de una institución educativa y participa en el proceso de evaluación del desempeño docente. Uno de los profesores, amigo cercano de su familia, ha presentado incumplimientos recurrentes, como llegar tarde y no desarrollar algunos contenidos del programa. Su desempeño ha sido insatisfactorio y lo excluiría del escalafón docente. El profesor le pide que intervenga para evitar recibir una calificación insatisfactoria debido a su relación personal. ¿Qué decide hacer?",
         opciones: [
           { texto: "Interceder ante el rector para que se le asigne una calificación favorable, teniendo en cuenta su relación personal y las posibles consecuencias laborales.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Presentar un informe objetivo sobre el desempeño del docente, sustentado en las evidencias disponibles, dejando que la evaluación siga los procedimientos institucionales.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Presentar un informe objetivo sobre el desempeño del docente, sustentado en las evidencias disponibles, dejando que la evaluación siga los procedimientos institucionales.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 24 · Causales de exclusión del escalafón"
       },
@@ -699,7 +778,7 @@ const CONTENIDO = {
         texto: "Un docente que anteriormente fue retirado del cargo de coordinador por bajo rendimiento solicita participar en el proceso para ocupar una nueva vacante. Argumenta que su experiencia previa le permite desempeñar nuevamente esa función. Usted debe decidir entre:",
         opciones: [
           { texto: "Respaldar su aspiración ante la Secretaría de Educación, destacando su experiencia y los aprendizajes obtenidos.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Abstenerse de intervenir en su postulación, dado que no es elegible para el cargo.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Abstenerse de intervenir en su postulación, dado que no es elegible para el cargo.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 25 · Reingreso por concurso tras la exclusión"
       },
@@ -707,7 +786,7 @@ const CONTENIDO = {
         codigo: "CAR-C-3-01", cargo: "Coordinador", anio: 3, dificultad: 1,
         texto: "El rector le solicita observar una clase de un docente para aportar información sobre su desempeño. Sin embargo, el docente es un amigo cercano y le pide que informe únicamente aspectos positivos de su trabajo. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Realizar la observación con objetividad y entregar información basada en lo que realmente evidenció.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Realizar la observación con objetividad y entregar información basada en lo que realmente evidenció.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Resaltar principalmente los aspectos positivos para evitar perjudicar a su compañero.", efectos: { desempeno: -6, popularidad: 4 } }
         ],
         articulo: "Art. 29, lit. a, y art. 33 · Objetividad y observación de clase"
@@ -716,7 +795,7 @@ const CONTENIDO = {
         codigo: "CAR-C-3-03", cargo: "Coordinador", anio: 3, dificultad: 2,
         texto: "Durante el acompañamiento a los docentes, identifica que uno de ellos presenta dificultades para manejar su grupo. El docente reconoce el problema, pero manifiesta que no sabe cómo solucionarlo. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Recomendarle estrategias de mejoramiento y promover su participación en actividades de capacitación.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Recomendarle estrategias de mejoramiento y promover su participación en actividades de capacitación.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Informar al rector sobre las dificultades y esperar que él determine qué medidas tomar.", efectos: { desempeno: -6, popularidad: 4 } }
         ],
         articulo: "Art. 28, lits. a y c, y art. 38 · Mejora y capacitación"
@@ -725,7 +804,7 @@ const CONTENIDO = {
         codigo: "CAR-C-3-05", cargo: "Coordinador", anio: 3, dificultad: 3,
         texto: "El rector le solicita aportar información sobre el desempeño de un docente con quien mantiene una buena relación. El docente le pide que destaque únicamente sus aspectos positivos, aunque usted sabe que algunos aspectos de su trabajo necesitan mejorar. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Entregar una valoración objetiva, basada en las evidencias de su trabajo, aunque pueda afectar la relación con su compañero.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Entregar una valoración objetiva, basada en las evidencias de su trabajo, aunque pueda afectar la relación con su compañero.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Destacar principalmente los aspectos positivos porque considera que también deben reconocerse sus esfuerzos.", efectos: { desempeno: -6, popularidad: 4 } }
         ],
         articulo: "Art. 26, art. 29, lit. a, y art. 33 · Aporte objetivo de evidencias"
@@ -735,7 +814,7 @@ const CONTENIDO = {
         texto: "La institución participará en un concurso intercolegial que exige proyectos sostenibles representativos de su contexto cultural. Algunos docentes proponen seleccionar únicamente estudiantes con alto rendimiento académico para garantizar la calidad del proyecto, mientras otros defienden la participación de todos los interesados.",
         opciones: [
           { texto: "Seleccionar estudiantes destacados y delegarles la formulación del proyecto.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Promover espacios de participación para construir colectivamente el proyecto y distribuir responsabilidades.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Promover espacios de participación para construir colectivamente el proyecto y distribuir responsabilidades.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 35 · Liderazgo y dirección como competencias directivas"
       },
@@ -743,7 +822,7 @@ const CONTENIDO = {
         codigo: "CAR-C-4-02", cargo: "Coordinador", anio: 4, dificultad: 1,
         texto: "Un grupo de estudiantes organiza una manifestación para expresar su inconformidad frente a cambios administrativos y académicos implementados por la rectoría. La protesta afecta el desarrollo de las clases y algunos docentes solicitan la intervención del coordinador. Ante esta situación, usted debe decidir entre:",
         opciones: [
-          { texto: "Intervenir para restablecer las actividades académicas, solicitando a los estudiantes suspender la manifestación y utilizar los mecanismos institucionales para presentar sus inconformidades.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Intervenir para restablecer las actividades académicas, solicitando a los estudiantes suspender la manifestación y utilizar los mecanismos institucionales para presentar sus inconformidades.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Respetar la manifestación pacífica de los estudiantes, reconociendo su derecho a expresar libremente sus inconformidades.", efectos: { popularidad: 4, desempeno: -6 } }
         ]
       },
@@ -752,7 +831,7 @@ const CONTENIDO = {
         texto: "Después de varios años como coordinador, recibe una propuesta para ocupar el cargo de rector sin participar en un concurso. Le aseguran que su experiencia es suficiente para asumir la responsabilidad. ¿Qué decide hacer?",
         opciones: [
           { texto: "Aceptar el cargo porque ya cuenta con experiencia en funciones directivas.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Solicitar que se respete el procedimiento de selección y participar en el concurso correspondiente si cumple los requisitos.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Solicitar que se respete el procedimiento de selección y participar en el concurso correspondiente si cumple los requisitos.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 8 y art. 10, lit. c · Concurso y requisitos para rector"
       },
@@ -761,14 +840,14 @@ const CONTENIDO = {
         texto: "Un docente falta reiteradamente a sus clases sin presentar justificación. Ante esta situación, el coordinador decide imponerle una sanción económica equivalente a dos salarios mínimos legales mensuales vigentes. Esta actuación es:",
         opciones: [
           { texto: "Correcta, pues las ausencias injustificadas deben ser sancionadas.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Incorrecta, se está extralimitando en sus funciones.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Incorrecta, se está extralimitando en sus funciones.", efectos: { desempeno: 6, popularidad: -2 } }
         ]
       },
       {
         codigo: "CAR-R-3-01", cargo: "Rector", anio: 3, dificultad: 1,
         texto: "Al finalizar el año escolar, descubre que varios docentes todavía no han sido evaluados. Algunos llevan más de tres meses trabajando en la institución y usted considera que realizar todas las evaluaciones tomará demasiado tiempo. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Realizar las evaluaciones correspondientes antes de finalizar el proceso académico.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Realizar las evaluaciones correspondientes antes de finalizar el proceso académico.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Evaluar únicamente a los docentes que considera más importantes para el funcionamiento de la institución.", efectos: { desempeno: -6, popularidad: 4 } }
         ],
         articulo: "Art. 32 · Evaluación anual y tiempo mínimo servido"
@@ -778,7 +857,7 @@ const CONTENIDO = {
         texto: "Durante la evaluación de desempeño de un docente, recibe comentarios positivos de varios padres de familia. Sin embargo, las observaciones de clase y los resultados de sus estudiantes muestran algunas dificultades importantes. ¿Qué decide hacer?",
         opciones: [
           { texto: "Asignar una calificación favorable porque la mayoría de los padres está satisfecha con el docente.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Considerar diferentes instrumentos y evidencias para realizar una evaluación objetiva.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Considerar diferentes instrumentos y evidencias para realizar una evaluación objetiva.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 29 y art. 33 · Objetividad y uso de varias evidencias"
       },
@@ -786,7 +865,7 @@ const CONTENIDO = {
         codigo: "CAR-R-3-05", cargo: "Rector", anio: 3, dificultad: 3,
         texto: "Al finalizar el año, la institución presenta bajos resultados académicos y un aumento en la deserción escolar. Usted considera que estos resultados no reflejan todo el trabajo realizado durante su gestión. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Presentar evidencias de su gestión, incluyendo las acciones de liderazgo, organización y mejoramiento institucional, junto con los resultados obtenidos.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Presentar evidencias de su gestión, incluyendo las acciones de liderazgo, organización y mejoramiento institucional, junto con los resultados obtenidos.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Justificar los resultados negativos argumentando que el rendimiento académico depende principalmente del trabajo de los docentes.", efectos: { desempeno: -6, popularidad: 4 } }
         ],
         articulo: "Art. 34, par. · Liderazgo, retención y resultados"
@@ -795,7 +874,7 @@ const CONTENIDO = {
         codigo: "CAR-R-4-01", cargo: "Rector", anio: 4, dificultad: 1,
         texto: "Casualmente, usted observa a una persona aparentemente en situación de vulnerabilidad que ingresó a la institución con un supuesto permiso del rector. Esta persona recorre los salones contando una historia personal y solicitando contribuciones económicas a los estudiantes. Tiempo después, la encuentra realizando la misma actividad en otra institución educativa. Como coordinador, usted debe decidir entre:",
         opciones: [
-          { texto: "Confrontar a la persona y cuestionar su actuación, manifestándole su preocupación por la utilización de los estudiantes para obtener beneficios económicos.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Confrontar a la persona y cuestionar su actuación, manifestándole su preocupación por la utilización de los estudiantes para obtener beneficios económicos.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Abstenerse de involucrarse, evitando generar problemas.", efectos: { desempeno: -6, popularidad: 4 } }
         ]
       },
@@ -804,7 +883,7 @@ const CONTENIDO = {
         texto: "En una conversación informal entre docentes, algunos comentan su interés en postularse al cargo de coordinador. Durante la conversación, varios manifiestan que un docente con estudios de maestría sería más apto para desempeñar el cargo y menosprecian la trayectoria de otro compañero que, aunque es normalista superior, cuenta con una amplia experiencia y una hoja de vida destacada. Estas afirmaciones son:",
         opciones: [
           { texto: "Correctas, pues para optar al cargo de coordinador se requiere mínimo estudio de maestría.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Erradas, una persona con formación de normalista superior puede optar al cargo.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Erradas, una persona con formación de normalista superior puede optar al cargo.", efectos: { desempeno: 6, popularidad: -2 } }
         ],
         articulo: "Art. 21 · Afinidad de una maestría o doctorado con el cargo"
       },
@@ -812,7 +891,7 @@ const CONTENIDO = {
         codigo: "CAR-R-5-01", cargo: "Rector", anio: 5, dificultad: 1,
         texto: "Un docente cercano a usted solicita que su evaluación de desempeño sea favorable, aunque no haya cumplido satisfactoriamente varias de sus responsabilidades. Le recuerda que ambos mantienen una buena amistad desde hace años. ¿Qué decide hacer?",
         opciones: [
-          { texto: "Realizar la evaluación de acuerdo con las evidencias y los criterios establecidos.", efectos: { desempeno: 7, popularidad: -3 } },
+          { texto: "Realizar la evaluación de acuerdo con las evidencias y los criterios establecidos.", efectos: { desempeno: 6, popularidad: -2 } },
           { texto: "Otorgar una calificación favorable para conservar una buena relación con el docente.", efectos: { desempeno: -6, popularidad: 4 } }
         ],
         articulo: "Art. 29, lit. a, y art. 39 · Objetividad frente al favoritismo"
@@ -822,7 +901,7 @@ const CONTENIDO = {
         texto: "Una estudiante perteneciente a una comunidad indígena manifiesta, junto con sus padres, que algunos docentes le exigen responder exclusivamente en español durante las clases, sin permitirle expresarse en su lengua materna. Los padres consideran que esta situación desconoce su identidad cultural y constituye una forma de discriminación. Ante esta situación, usted, como coordinador, decide:",
         opciones: [
           { texto: "Respaldar a los docentes, considerando que el castellano es el idioma oficial de Colombia y debe ser priorizado en las actividades académicas.", efectos: { desempeno: -6, popularidad: 4 } },
-          { texto: "Respaldar a la estudiante y a sus padres, reconociendo su derecho a expresar su identidad cultural y lingüística en el entorno educativo.", efectos: { desempeno: 7, popularidad: -3 } }
+          { texto: "Respaldar a la estudiante y a sus padres, reconociendo su derecho a expresar su identidad cultural y lingüística en el entorno educativo.", efectos: { desempeno: 6, popularidad: -2 } }
         ]
       }
     ],

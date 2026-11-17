@@ -32,6 +32,7 @@
   /* ============================ utilidades ============================ */
 
   const lim = (n) => Math.max(0, Math.min(100, Math.round(n)));
+  const anios = (n) => `${n} año${n === 1 ? "" : "s"}`;
   const escribiendo = () => { const a = document.activeElement; return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"); };
 
   function nodo(tag, clase, texto) {
@@ -64,6 +65,10 @@
       cargo: "Docente",
       veces: {},                 // cuántas veces ha hecho cada cosa (para subir la dificultad)
       intentosCompetencias: 0,
+      pendiente: {},             // preguntas que quedaron sin responder (se retoman al volver)
+      consulta: null,            // artículos que fue a consultar donde el bibliotecario
+      concursoActual: null,      // el concurso que va a mitad (si salió a consultar)
+      aniosInicio: pj.aniosExperiencia || 0,
       grado: null,
       nivel: "A",
       aniosDesdeAscenso: 0,
@@ -104,9 +109,22 @@
     return cont;
   }
 
+  // Números de artículo (8 a 40) que menciona un texto, como "Art. 14 y art. 15" o "Arts. 20–23"
+  function numerosDe(texto) {
+    const t = String(texto || "");
+    const nums = new Set();
+    t.replace(/(\d+)\s*[–-]\s*(\d+)/g, (m, a, b) => { for (let n = +a; n <= +b && n - a < 40; n++) nums.add(n); return ""; })
+      .replace(/\d+/g, (m) => { nums.add(+m); return ""; });
+    return [...nums].filter((n) => n >= 8 && n <= 40).sort((p, q) => p - q);
+  }
+  const articuloDe = (n) => (C.articulos || []).find((x) => x.num === n);
+  const totalArticulos = () => (C.articulos || []).length || 33;
+
+  // Marca como conocidos los artículos que menciona el texto. Devuelve true si alguno es nuevo.
   function descubrir(articulo) {
-    if (Comun.articuloReal(articulo) && !E.articulos.includes(articulo)) { E.articulos.push(articulo); return true; }
-    return false;
+    let nuevo = false;
+    numerosDe(articulo).forEach((n) => { if (!E.articulos.includes(n)) { E.articulos.push(n); nuevo = true; } });
+    return nuevo;
   }
 
   function tarjetaArticulo(articulo, explicacion) {
@@ -114,6 +132,13 @@
     const t = nodo("div", "tarjeta-articulo");
     t.append(con("div", "art-titulo", ico("articulo"), (nuevo ? "Nuevo artículo · " : "") + (articulo || "Estatuto docente")));
     if (explicacion) t.append(nodo("p", "", explicacion));
+    else {
+      // Sin explicación propia: la de la enciclopedia del estatuto
+      numerosDe(articulo).forEach((n) => {
+        const x = articuloDe(n);
+        if (x) t.append(con("p", "", con("b", "", `Art. ${n} · ${x.titulo}. `), x.texto));
+      });
+    }
     actualizarHud();
     return t;
   }
@@ -221,7 +246,7 @@
     });
     $("hud-anio-t").textContent = `Año ${Math.min(E.anio, C.aniosDeJuego)}/${C.aniosDeJuego}`;
     $("hud-situacion").textContent = textoSituacion();
-    $("hud-arts-t").textContent = E.articulos.length + (E.articulos.length === 1 ? " artículo" : " artículos");
+    $("hud-arts-t").textContent = `${E.articulos.length}/${totalArticulos()} artículos`;
     $("hud-objetivo").textContent = objetivo().texto;
   }
 
@@ -262,28 +287,44 @@
 
   /* ========================= objetivos y acceso ========================= */
 
-  function objetivo() {
+  // Profesional no licenciada trabajando sin pedagogía: debe inscribirse (art. 12, parágrafo 1)
+  function necesitaPedagogia() {
+    return E.pj.titulo === "profesional" && !pedagogiaAcreditada() && (E.laboral === "prueba" || E.laboral === "provisional");
+  }
+
+  // Lo que hay que hacer, sin contar la consulta al bibliotecario
+  function objetivoBase() {
     if (!E || E.fin) return { texto: "Fin de la partida" };
     if (E.esperando) return { texto: `Terminaste el año ${E.esperando}: espera a que los demás terminen` };
     if (E.laboral === "aspirante") return { id: "secretaria", texto: E.sinPlaza ? "Objetivo: vuelve a presentarte al concurso en la Secretaría" : "Objetivo: ve a la Secretaría de Educación" };
     if (E.laboral === "provisional" && E.anioConcurso < E.anio) return { id: "secretaria", texto: "Objetivo: preséntate al nuevo concurso en la Secretaría" };
-    if (!E.hechos.colegio) return { id: "colegio", texto: "Objetivo: ve a dar clase al Colegio" };
+    if (necesitaPedagogia()) return { id: "universidad", texto: "Objetivo: inscríbete en pedagogía en la Universidad (art. 12)" };
+    if (!E.hechos.colegio) return { id: "colegio", texto: E.cargo === "Docente" ? "Objetivo: ve a dar clase al Colegio" : `Objetivo: ve al Colegio (como ${E.cargo.toLowerCase()})` };
     const quedan = E.cartas.filter((c) => !c.tomada).length;
     if (quedan) return { carta: true, texto: `Objetivo: recoge las cartas del año (${quedan})` };
     return { id: "rectoria", texto: "Objetivo: ve a la Rectoría para tu evaluación anual" };
   }
 
+  // Si salió a consultar un artículo, primero el bibliotecario
+  function objetivo() {
+    const base = objetivoBase();
+    if (E && !E.fin && !E.esperando && E.consulta) return { npc: true, texto: "Objetivo: consulta al bibliotecario de la plaza y vuelve a responder" };
+    return base;
+  }
+
   // Devuelve { estado: "objetivo" | "opcional" | "hecho" | "bloqueado", motivo }
   function acceso(id) {
     if (E.esperando) return { estado: "bloqueado", motivo: "Espera a que los demás terminen el año" };
-    const obj = objetivo();
+    const obj = objetivoBase();
     if (obj.id === id) return { estado: "objetivo" };
     if (E.laboral === "aspirante") return { estado: "bloqueado", motivo: "Primero preséntate al concurso en la Secretaría" };
     if (obj.id === "secretaria") return { estado: "bloqueado", motivo: "Primero preséntate al nuevo concurso en la Secretaría" };
     switch (id) {
       case "secretaria": return E.hechos.secretaria ? { estado: "hecho", motivo: "Ya hiciste un trámite en la Secretaría este año" } : { estado: "opcional" };
       case "universidad": return E.hechos.universidad ? { estado: "hecho", motivo: "Ya pasaste por la Universidad este año" } : { estado: "opcional" };
-      case "colegio": return { estado: "hecho", motivo: "Ya diste clase este año" };
+      case "colegio": return E.hechos.colegio
+        ? { estado: "hecho", motivo: E.cargo === "Docente" ? "Ya diste clase este año" : "Ya fuiste al Colegio este año" }
+        : { estado: "opcional" };
       case "rectoria": return { estado: "bloqueado", motivo: obj.texto.replace("Objetivo: ", "Primero ") };
     }
     return { estado: "bloqueado" };
@@ -341,6 +382,51 @@
     return accion(texto || "Volver al mapa", () => { if (antes) antes(); cerrarPanel(); });
   }
 
+  // Antes de responder: el artículo relacionado y la opción de ir a consultarlo y volver
+  function relacionado(cuerpo, item) {
+    if (!item || !item.articulo) return;
+    cuerpo.append(con("div", "relacionado", ico("articulo"), con("span", "", con("b", "", "Artículo relacionado: "), item.articulo)));
+    if (numerosDe(item.articulo).some(articuloDe)) {
+      accion("¿No estás segur" + a() + "? Consultar el artículo", () => consultar(item), "btn-secundario");
+    }
+  }
+  function consultar(item) {
+    E.consulta = numerosDe(item.articulo);
+    cerrarPanel();
+    aviso("Ve con el bibliotecario de la plaza y luego vuelve: tu pregunta te espera.", "articulo");
+  }
+
+  // El bibliotecario: los artículos 8 a 40 explicados
+  function enciclopedia() {
+    const B = MAPA.bibliotecario;
+    const c = abrirPanel("articulo", "Enciclopedia del estatuto", "Decreto Ley 1278 de 2002 · Arts. 8–40");
+    c.append(quien(B.nombre, "bibliotecario"));
+    const buscados = (E.consulta || []).filter(articuloDe);
+    c.append(globo(buscados.length
+      ? "Aquí está lo que viniste a buscar. Cuando lo leas, vuelve a responder: tu pregunta te espera."
+      : "Aquí están explicados los artículos 8 al 40 del estatuto docente. Toca uno para leerlo."));
+    const ficha = (x, abierta) => {
+      const d = nodo("details", "art-enciclopedia" + (E.articulos.includes(x.num) ? " visto" : ""));
+      d.open = !!abierta;
+      d.append(con("summary", "", con("b", "", `Art. ${x.num}`), ` · ${x.titulo}`));
+      d.append(nodo("p", "", x.texto));
+      d.addEventListener("toggle", () => { if (d.open && descubrir(`Art. ${x.num}`)) { d.classList.add("visto"); actualizarHud(); } });
+      if (abierta) descubrir(`Art. ${x.num}`);
+      return d;
+    };
+    if (buscados.length) {
+      c.append(nodo("div", "etiqueta", "Para tu pregunta"));
+      buscados.forEach((n) => c.append(ficha(articuloDe(n), true)));
+    }
+    (C.capitulos || []).forEach((cap) => {
+      c.append(nodo("div", "etiqueta", `${cap.nombre} · Arts. ${cap.desde}–${cap.hasta}`));
+      (C.articulos || []).filter((x) => x.num >= cap.desde && x.num <= cap.hasta).forEach((x) => c.append(ficha(x, false)));
+    });
+    E.consulta = null;
+    actualizarHud();
+    accionVolver();
+  }
+
   function entrar(id) {
     const ac = acceso(id);
     if (ac.estado === "bloqueado" || ac.estado === "hecho") { aviso(ac.motivo, ac.estado === "hecho" ? "check" : "candado"); return; }
@@ -355,13 +441,15 @@
 
   /* -------------------- situación con opciones (genérica) -------------------- */
   // Sirve para el colegio y para las cartas.
-  function situacion(cuerpo, item, npc, alTerminar, etiqueta, banco) {
+  function situacion(cuerpo, item, npc, alTerminar, etiqueta, banco, alResponder) {
     if (!item) { cuerpo.append(globo("Todavía no hay situaciones en este banco.")); accionVolver(null, alTerminar); return; }
     if (item.personaje) cuerpo.append(quien(item.personaje, npc));
     if (item.titulo) cuerpo.append(nodo("h3", "titulo-carta", item.titulo));
     cuerpo.append(nodo("div", "enunciado", item.texto));
+    relacionado(cuerpo, item);
     cuerpo.append(nodo("div", "elige", "¿Qué haces?"));
     cuerpo.append(opciones(item, banco, (op) => {
+      if (alResponder) alResponder(op);
       const c = limpiarCuerpo();
       E.evidencias.push({ nombre: etiqueta || item.titulo || "Situación", bien: op.correcta === undefined ? null : Comun.esCorrecta(op), efectos: op.efectos || {} });
       c.append(nodo("p", "respuesta-elegida", op.texto));
@@ -381,13 +469,23 @@
   function concurso() {
     const K = C.concurso;
     const est = C.introduccion.estructura;
-    E.intentos++;
-    const nivel = Math.min(3, E.intentos);
+    // Si salió a consultar un artículo a mitad del concurso, sigue donde iba con las mismas preguntas
+    let cc = E.concursoActual;
+    const retomar = !!cc;
+    if (!cc) {
+      E.intentos++;
+      cc = E.concursoActual = { intento: E.intentos, items: {}, resp: {}, etapa: 0 };
+      K.pruebas.forEach((p) => {
+        const it = Comun.sacar(p.banco, usadas(p.banco), Math.min(3, E.intentos));
+        cc.items[p.id] = it ? it.indice : -1;
+      });
+    }
+    const nivel = Math.min(3, cc.intento);
     const orden = K.orden || K.pruebas.map((p) => p.id).concat("antecedentes");
     const prueba = {};
-    K.pruebas.forEach((p) => { prueba[p.id] = { p, item: Comun.sacar(p.banco, usadas(p.banco), nivel) }; });
+    K.pruebas.forEach((p) => { prueba[p.id] = { p, item: cc.items[p.id] >= 0 ? Comun.item(p.banco, cc.items[p.id]) : null }; });
     const antecedentes = Math.round((E.ind.experiencia + E.ind.formacion) / 2);
-    const resp = {};
+    const resp = cc.resp;
     const nombreEtapa = (i) => (est.etapas[i] && est.etapas[i].nombre) || orden[i];
     const peso = (id) => (id === "antecedentes" ? K.pesoAntecedentes : prueba[id] ? prueba[id].p.peso : 0);
     const escritas = K.escritas || [];
@@ -415,6 +513,7 @@
     c.append(ol);
     c.append(tarjetaArticulo("Art. 9 · Etapas del concurso", "El concurso clasifica a los aspirantes por mérito con la prueba de aptitudes y competencias básicas, la prueba psicotécnica, la entrevista y la valoración de antecedentes, y con eso arma la lista de elegibles. La prueba de aptitudes es eliminatoria (60/100 para docentes); las demás suman puntaje."));
     accion("Empezar las pruebas", () => etapa(0));
+    if (retomar) etapa(cc.etapa);
 
     function cabecera(i) {
       c = limpiarCuerpo();
@@ -424,6 +523,7 @@
 
     function etapa(i) {
       if (i >= orden.length || !sigue(orden[i])) { resultado(); return; }
+      cc.etapa = i;
       const id = orden[i];
       if (id === "antecedentes") {
         cabecera(i);
@@ -447,6 +547,7 @@
       }
       c.append(quien(id === "entrevista" ? "Jurado de la entrevista" : "Funcionaria de la Secretaría", id === "entrevista" ? "jurado" : "funcionaria"));
       c.append(nodo("div", "enunciado", item.texto));
+      relacionado(c, item);
       c.append(nodo("div", "elige", "Elige una respuesta"));
       c.append(opciones(item, p.banco, (op) => { resp[id] = op; retro(i, op, item, p); }));
       const ap = Comun.avisoPrueba(); if (ap) c.append(ap);
@@ -468,6 +569,7 @@
     }
 
     function resultado() {
+      E.concursoActual = null;
       const fuera = eliminado();
       let total = fuera ? 0 : antecedentes * K.pesoAntecedentes;
       c = limpiarCuerpo();
@@ -507,8 +609,8 @@
         accion("Volver al mapa", cerrarPanel, "btn-secundario");
         return;
       }
-      if (op.estado === "prueba" && E.pj.titulo === "profesional" && !pedagogiaAcreditada()) {
-        c.append(nodo("div", "alerta", "Como no eres licenciada, antes de la evaluación del periodo de prueba debes estar cursando o haber terminado un programa de pedagogía o un posgrado en educación (art. 12). Inscríbete en la Universidad."));
+      if ((op.estado === "prueba" || op.estado === "provisional") && E.pj.titulo === "profesional" && !pedagogiaAcreditada()) {
+        c.append(nodo("div", "alerta", `Como no eres licenciad${a()}, debes inscribirte en un programa de pedagogía o en una especialización en educación: el art. 12 lo exige para aprobar el periodo de prueba. Ve a la Universidad.`));
       }
       accion(E.laboral === "provisional" && op.estado === "provisional" ? "Seguir como provisional" : "Aceptar", () => {
         const antes = E.laboral;
@@ -518,8 +620,8 @@
         registrar(`Concurso con ${total} puntos → ${op.nombre}.`);
         if (E.cartas.length === 0 && pueblo) pueblo.generarCartas(2);
         cerrarPanel();
-        if (op.estado === "prueba" && E.pj.titulo === "profesional" && !pedagogiaAcreditada()) {
-          aviso("Para aprobar el periodo de prueba debes inscribirte en pedagogía en la Universidad (art. 12).", "formacion");
+        if (necesitaPedagogia()) {
+          aviso("Como no eres licenciad" + a() + ", inscríbete en pedagogía en la Universidad (art. 12).", "formacion");
         } else if (op.estado === "prueba") aviso("¡Nombramiento en periodo de prueba! Ve al Colegio.", "check");
         else aviso(antes === "provisional" ? "Sigues como provisional este año." : "Trabajarás como provisional. Ve al Colegio.", "colegio");
       });
@@ -542,10 +644,22 @@
     return item;
   }
 
+  // Una pregunta que quedó sin responder (por ir a consultar) se retoma igual al volver
+  function pendienteDe(banco, sacarNueva) {
+    E.pendiente = E.pendiente || {};
+    let item = E.pendiente[banco] != null ? Comun.item(banco, E.pendiente[banco]) : null;
+    if (!item) {
+      item = sacarNueva();
+      if (item) E.pendiente[banco] = item.indice;
+    }
+    return item;
+  }
+
   function colegio() {
-    const item = sacarDeCargo("colegio", 1);
+    const item = pendienteDe("colegio", () => sacarDeCargo("colegio", 1));
     const c = abrirPanel("colegio", "Colegio", `Año ${E.anio} · ${textoSituacion()}`);
-    situacion(c, item, npcDe(item && item.personaje), () => { E.hechos.colegio = true; }, "Clase en el colegio", "colegio");
+    situacion(c, item, npcDe(item && item.personaje), () => { E.hechos.colegio = true; },
+      E.cargo === "Docente" ? "Clase en el colegio" : "Gestión en el colegio", "colegio", () => { delete E.pendiente.colegio; });
   }
 
   /* ------------------------------ cartas ------------------------------ */
@@ -554,11 +668,11 @@
     const item = carta.item;
     const c = abrirPanel("carta", "Situación inesperada", item && item.tipo ? "Carta " + item.tipo.toLowerCase() : "Carta");
     situacion(c, item, "funcionaria", () => {
-      carta.tomada = true;
       if (carta.sprite) carta.sprite.destroy();
+      carta.sprite = null;
       const quedan = E.cartas.filter((x) => !x.tomada).length;
       setTimeout(() => aviso(quedan ? `Te queda ${quedan} carta por recoger` : "¡Cartas listas! Ve a la Rectoría", "carta"), 300);
-    }, item && item.titulo ? item.titulo : "Situación inesperada", "cartas");
+    }, item && item.titulo ? item.titulo : "Situación inesperada", "cartas", () => { carta.tomada = true; });
   }
 
   /* ----------------------------- universidad ----------------------------- */
@@ -580,7 +694,7 @@
     }
     c.append(globo("¿Quieres seguir formándote? Estudiar sube tu formación y te abre puertas en el escalafón, pero te quita tiempo."));
     if (E.pj.titulo === "profesional" && !E.titulos.pedagogia) {
-      c.append(nodo("div", "alerta", "Como no eres licenciada, debes acreditar un programa de pedagogía o un posgrado en educación antes de terminar el periodo de prueba (art. 12)."));
+      c.append(nodo("div", "alerta", `Como no eres licenciad${a()}, para aprobar el periodo de prueba debes estar cursando o haber terminado un programa de pedagogía o un posgrado en educación (art. 12, parágrafo 1).`));
     }
     const ops = nodo("div", "opciones");
     C.formacion.forEach((p) => {
@@ -590,6 +704,7 @@
       let bloqueo = null;
       if (p.requiere === "pregrado" && !tienePregrado()) bloqueo = "Necesitas primero una licenciatura";
       if (p.requiere === "maestria" && !E.titulos.maestria) bloqueo = "Necesitas primero una maestría";
+      if (!bloqueo && necesitaPedagogia() && p.otorga !== "pedagogia") bloqueo = "Primero necesitas pedagogía o una especialización en educación (art. 12)";
       const b = boton("", "btn-opcion btn-curso", () => inscribir(p));
       b.append(con("span", "curso-nombre", p.nombre, " ", nodo("span", "chip", `${p.anios} año${p.anios > 1 ? "s" : ""}`)));
       const det = con("span", "curso-detalle", "Al terminar: ", efectosCortos(p.efectos, true));
@@ -648,17 +763,21 @@
   function competencias() {
     const K = C.progresion.competencias;
     const base = Math.round(Object.entries(K.pesos).reduce((s, [k, w]) => s + E.ind[k] * w, 0));
-    // Cada vez que se vuelve a presentar, la pregunta es más difícil
-    E.intentosCompetencias = (E.intentosCompetencias || 0) + 1;
-    const q = Comun.sacar("secretaria", usadas("secretaria"), Math.min(3, E.intentosCompetencias), null, E.anio);
+    // Cada vez que se vuelve a presentar, la pregunta es más difícil (si salió a consultar, es la misma)
+    const q = pendienteDe("secretaria", () => {
+      E.intentosCompetencias = (E.intentosCompetencias || 0) + 1;
+      return Comun.sacar("secretaria", usadas("secretaria"), Math.min(3, E.intentosCompetencias), null, E.anio);
+    });
     let c = limpiarCuerpo();
     c.append(quien("Evaluación de competencias", "funcionaria"));
     c.append(tarjetaArticulo(K.articulo, K.explicacion));
     c.append(globo(`Tu base por formación, desempeño y experiencia es ${base}. Responde esta pregunta: si aciertas sumas 10 puntos, si fallas pierdes 10.`));
     if (!q) { c.append(globo("Todavía no hay preguntas en el banco \"secretaria\".")); accionVolver(); return; }
     c.append(nodo("div", "enunciado", q.texto));
+    relacionado(c, q);
     c.append(nodo("div", "elige", "Elige una respuesta"));
     c.append(opciones(q, "secretaria", (o) => {
+      delete E.pendiente.secretaria;
       const acierto = Comun.esCorrecta(o);
       const total = lim(base + (acierto ? 10 : -10));
       E.hechos.secretaria = true;
@@ -722,6 +841,14 @@
     if (puntaje >= d.minimo) {
       E.cargo = d.cargo;
       registrar(`Ganó el concurso y fue nombrad${a()} ${d.cargo.toLowerCase()}.`);
+      // Lo que queda del año ya es del nuevo cargo: el colegio y las cartas que no ha recogido
+      if (E.pendiente) delete E.pendiente.colegio;
+      const quedan = E.cartas.filter((x) => !x.tomada);
+      if (quedan.length && pueblo) {
+        quedan.forEach((x) => { if (x.sprite) x.sprite.destroy(); });
+        E.cartas = E.cartas.filter((x) => x.tomada);
+        pueblo.generarCartas(quedan.length);
+      }
       c.append(caja("oportunidad vacante", `¡Nombrad${a()} ${d.cargo}!`, "check"));
       c.append(chipsEfectos(aplicar(d.efectos)));
       c.append(tarjetaArticulo("Art. 22 · Escalafón de directivos", "Quien pasa a un cargo directivo conserva su grado en el escalafón y recibe una mayor remuneración."));
@@ -869,6 +996,8 @@
   function empezarAnio() {
     if (!E || E.fin) return;
     E.esperando = 0;
+    E.pendiente = {};
+    E.consulta = null;
     if (E.laboral !== "aspirante" && pueblo) pueblo.generarCartas(2);
     actualizarHud();
     if (pueblo) pueblo.actualizarMarcadores();
@@ -1011,6 +1140,9 @@
     E = guardado;
     E.pj = C.personajes.find((p) => p.id === (E.pj && E.pj.id)) || E.pj;
     E.cartas = (E.cartas || []).filter((x) => !x.tomada);
+    E.articulos = (E.articulos || []).filter((n) => typeof n === "number");
+    E.pendiente = E.pendiente || {};
+    E.veces = E.veces || {};
     construirHud();
     mostrar(null);
     if (E.fin) { pantallaFinal(); return; }
@@ -1050,8 +1182,8 @@
     $("fin-titulo").textContent = `${E.pj.nombre}: ${textoSituacion()}`;
     $("fin-texto").textContent = excluido
       ? "Tu carrera terminó antes de tiempo por dos evaluaciones insatisfactorias seguidas."
-      : motivo ? `${motivo} Ibas en el año ${E.anio} con ${E.aniosExp} años de experiencia. Puntaje de carrera: ${p}.`
-      : `Terminaste ${C.aniosDeJuego} años de juego con ${E.aniosExp} años de experiencia. Puntaje de carrera: ${p}.`;
+      : motivo ? `${motivo} Ibas en el año ${E.anio} con ${anios(E.aniosExp)} de experiencia. Puntaje de carrera: ${p}.`
+      : `Terminaste ${C.aniosDeJuego} años de juego con ${anios(E.aniosExp)} de experiencia (empezaste con ${anios(E.aniosInicio != null ? E.aniosInicio : E.pj.aniosExperiencia || 0)}). Puntaje de carrera: ${p}.`;
     const inds = $("fin-indicadores");
     inds.innerHTML = "";
     IND.forEach((k) => inds.append(con("li", "", ico(k), `${C.indicadores[k].nombre}: ${E.ind[k]}`)));
@@ -1061,7 +1193,10 @@
     const lista = $("fin-articulos");
     lista.innerHTML = "";
     if (!E.articulos.length) lista.append(nodo("li", "", "Ninguno todavía"));
-    E.articulos.forEach((ar) => lista.append(con("li", "", ico("articulo"), ar)));
+    E.articulos.slice().sort((p, q) => p - q).forEach((n) => {
+      const x = articuloDe(n);
+      lista.append(con("li", "", ico("articulo"), `Art. ${n}` + (x ? ` · ${x.titulo}` : "")));
+    });
     $("btn-reiniciar").onclick = () => location.reload();
     $("hud").classList.add("oculto");
     if (pueblo && pueblo.flecha) pueblo.flecha.setVisible(false);
@@ -1094,6 +1229,7 @@
       this.flecha = this.add.image(0, 0, "flecha").setDepth(100000).setVisible(false);
       this.rebote = { v: 0 };
       this.tweens.add({ targets: this.rebote, v: -7, duration: 420, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      this.ponerBibliotecario();
 
       this.cameras.main.startFollow(this.jugador, true, 0.15, 0.15);
       this.ajustarZoom();
@@ -1107,6 +1243,30 @@
       this.actualizarMarcadores();
       // Si la partida ya había empezado (por ejemplo, al retomarla), se pone al día
       if (E && jugando) { this.reiniciar(E.pj, E.pos); this.dibujarCartas(); }
+    }
+
+    // El bibliotecario del estatuto: quieto en la plaza, con un globito de libro encima
+    ponerBibliotecario() {
+      const B = MAPA.bibliotecario;
+      if (!B) return;
+      this.caminable[B.y][B.x] = false;
+      const x = this.pxX(B.x), y = this.pxY(B.y);
+      this.add.image(x, y - 1, "sombra").setDepth(y - 2);
+      this.add.image(x, y, "bibliotecario-lado1").setOrigin(0.5, 1).setDepth(y);
+      const placa = "placa-biblio";
+      if (!this.textures.exists(placa)) this.textures.addCanvas(placa, Pixel.escalar(Pixel.placa("Estatuto").c, 2));
+      this.add.image(x, y - 46, placa).setOrigin(0.5, 1).setDepth(99990);
+      if (!this.textures.exists("burbuja-articulo")) this.textures.addCanvas("burbuja-articulo", Pixel.escalar(Pixel.burbuja("articulo").c, 2));
+      const globito = this.add.image(x, y - 72, "burbuja-articulo").setOrigin(0.5, 1).setDepth(99991);
+      this.tweens.add({ targets: globito, y: y - 77, duration: 700, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+    }
+    esBibliotecario(x, y) { const B = MAPA.bibliotecario; return !!B && B.x === x && B.y === y; }
+    hablarConBibliotecario() {
+      const B = MAPA.bibliotecario;
+      this.dir = "lado";
+      this.jugador.setFlipX(B.x < this.casilla.x);
+      this.jugador.setTexture(this.pj + "-lado1");
+      enciclopedia();
     }
 
     reiniciar(pj, pos) {
@@ -1189,6 +1349,7 @@
         // en cualquier casilla por donde se camina (también caminos y orillas), pero nunca detrás de algo
         if (!this.esCaminable(x, y) || this.tapado[y][x]) return;
         if (puertas.some((p) => Math.abs(p.x - x) + Math.abs(p.y - y) < 2)) return;
+        if (MAPA.bibliotecario && MAPA.bibliotecario.lugar.x === x && MAPA.bibliotecario.lugar.y === y) return;
         if (Math.abs(this.casilla.x - x) + Math.abs(this.casilla.y - y) < 4) return;
         if (!this.buscarRuta(this.casilla, { x, y })) return;
         libres.push({ x, y });
@@ -1218,9 +1379,13 @@
       const wp = this.cameras.main.getWorldPoint(p.x, p.y);
       const tx = Math.floor(wp.x / T), ty = Math.floor(wp.y / T);
       const ed = this.edificioEn(tx, ty);
-      const meta = ed ? ed.puerta : { x: tx, y: ty };
+      // el bibliotecario ocupa una casilla un poco más arriba de donde se toca (es alto)
+      const biblio = this.esBibliotecario(tx, ty) || this.esBibliotecario(tx, ty + 1);
+      const meta = biblio ? MAPA.bibliotecario.lugar : ed ? ed.puerta : { x: tx, y: ty };
+      this.vaAlBibliotecario = biblio;
       if (!this.esCaminable(meta.x, meta.y)) { this.marca(wp.x, wp.y, false); return; }
       if (!this.moviendo && this.casilla.x === meta.x && this.casilla.y === meta.y) {
+        if (biblio) { this.vaAlBibliotecario = false; this.hablarConBibliotecario(); return; }
         const ep = this.edificioConPuerta(meta.x, meta.y);
         if (ep) entrar(ep.id);
         return;
@@ -1256,6 +1421,12 @@
       if (carta && this.moviendo) { this.detener(); abrirCarta(carta); return; }
       if (!this.camino.length) {
         this.detener();
+        const B = MAPA.bibliotecario;
+        if (this.vaAlBibliotecario && B && this.casilla.x === B.lugar.x && this.casilla.y === B.lugar.y) {
+          this.vaAlBibliotecario = false;
+          this.hablarConBibliotecario();
+          return;
+        }
         const ed = this.edificioConPuerta(this.casilla.x, this.casilla.y);
         if (ed) entrar(ed.id);
         return;
@@ -1284,6 +1455,8 @@
       if (obj.id) {
         const ed = MAPA.edificios.find((e) => e.id === obj.id);
         destino = { x: this.pxX(ed.puerta.x), y: (ed.y + ed.h) * T - 14 };
+      } else if (obj.npc && MAPA.bibliotecario) {
+        destino = { x: this.pxX(MAPA.bibliotecario.x), y: MAPA.bibliotecario.y * T - 50 };
       } else if (obj.carta) {
         const libres = E.cartas.filter((c) => !c.tomada);
         libres.sort((p, q) => (Math.abs(p.x - this.casilla.x) + Math.abs(p.y - this.casilla.y)) - (Math.abs(q.x - this.casilla.x) + Math.abs(q.y - this.casilla.y)));
@@ -1307,7 +1480,8 @@
       else if (k.DOWN.isDown || k.S.isDown) dy = 1;
       if (dx || dy) {
         const sig = { x: this.casilla.x + dx, y: this.casilla.y + dy };
-        if (this.esCaminable(sig.x, sig.y)) { this.camino = [sig]; this.moviendo = true; this.paso(); }
+        if (this.esCaminable(sig.x, sig.y)) { this.vaAlBibliotecario = false; this.camino = [sig]; this.moviendo = true; this.paso(); }
+        else if (this.esBibliotecario(sig.x, sig.y)) this.hablarConBibliotecario();
         else {
           this.dir = dy > 0 ? "abajo" : dy < 0 ? "arriba" : "lado";
           this.jugador.setFlipX(dx < 0);
